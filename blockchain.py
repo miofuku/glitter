@@ -47,6 +47,19 @@ class Blockchain:
                 return False
         return True
 
+
 # Example usage:
 blockchain = Blockchain()
-print(f"Genesis Block Hash: {blockchain.get_latest
+print(f"Genesis Block Hash: {blockchain.get_latest_block().hash}")
+
+# Add a new block
+data = "User A posts a new update"
+last_proof = blockchain.get_latest_block().proof
+proof = blockchain.proof_of_work(last_proof)
+blockchain.add_block(data, proof)
+
+print(f"New Block Added. Block Hash: {blockchain.get_latest_block().hash}")
+
+# Validate the blockchain
+is_valid = blockchain.validate_chain()
+print(f"Blockchain Valid: {is_valid}")
