@@ -7,7 +7,7 @@ class SocialNetwork:
     def __init__(self):
         self.users: Dict[str, PersonalBlockchain] = {}
         self.connections: Dict[str, List[str]] = {}
-        self.pending_transactions: List[Dict] = []
+        self.pending_transactions: List[Dict] = {}
 
     def add_user(self, username):
         if username not in self.users:
@@ -62,3 +62,18 @@ class SocialNetwork:
         # Verify a ZK proof
         # This is a placeholder. In a real implementation, you'd use a ZK-SNARK library
         return verify_proof(proof, claim)
+
+    def add_trusted_connection(self, user1, user2):
+        if user1 in self.users and user2 in self.users:
+            self.users[user1].add_trusted_node(user2)
+            self.users[user2].add_trusted_node(user1)
+
+    async def create_and_distribute_backup(self, username):
+        if username in self.users:
+            await self.users[username].create_and_distribute_backup(self.p2p_network)
+
+    async def restore_from_backup(self, username):
+        if username in self.users:
+            success = await self.users[username].restore_from_backup(self.p2p_network)
+            return success
+        return False

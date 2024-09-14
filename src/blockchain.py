@@ -2,6 +2,7 @@ import hashlib
 import time
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from .backup_manager import BackupManager
 
 class Block:
     def __init__(self, index, timestamp, data, previous_hash):
@@ -24,6 +25,8 @@ class PersonalBlockchain:
             key_size=2048
         )
         self.public_key = self.private_key.public_key()
+        self.backup_manager = BackupManager(self)
+        self.trusted_nodes = set()
 
     def create_genesis_block(self):
         return Block(0, time.time(), "Genesis Block", "0")
@@ -58,3 +61,16 @@ class PersonalBlockchain:
             return True
         except:
             return False
+
+    def add_trusted_node(self, node):
+        self.trusted_nodes.add(node)
+
+    def remove_trusted_node(self, node):
+        self.trusted_nodes.discard(node)
+
+    async def create_and_distribute_backup(self, p2p_network):
+        await self.backup_manager.distribute_backup(p2p_network, self.trusted_nodes)
+
+    async def restore_from_backup(self, p2p_network):
+        success = await self.backup_manager.request_backup_restoration(p2p_network, self.trusted_nodes)
+        return success
