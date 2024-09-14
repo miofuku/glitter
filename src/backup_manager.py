@@ -1,6 +1,7 @@
 import json
 import asyncio
 from cryptography.fernet import Fernet
+import base64
 
 class BackupManager:
     def __init__(self, personal_blockchain):
@@ -11,7 +12,16 @@ class BackupManager:
     def create_backup(self):
         data = {
             "owner": self.personal_blockchain.owner,
-            "chain": [block.__dict__ for block in self.personal_blockchain.chain]
+            "chain": [{
+                "index": block.index,
+                "timestamp": block.timestamp,
+                "data": {
+                    "data": block.data["data"],
+                    "signature": base64.b64encode(block.data["signature"]).decode('utf-8') if block.data.get("signature") else None
+                },
+                "previous_hash": block.previous_hash,
+                "hash": block.hash
+            } for block in self.personal_blockchain.chain]
         }
         json_data = json.dumps(data)
         encrypted_data = self.cipher_suite.encrypt(json_data.encode())

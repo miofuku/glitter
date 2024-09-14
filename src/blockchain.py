@@ -1,5 +1,6 @@
 import hashlib
 import time
+import json
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from .backup_manager import BackupManager
@@ -29,14 +30,17 @@ class PersonalBlockchain:
         self.trusted_nodes = set()
 
     def create_genesis_block(self):
-        return Block(0, time.time(), "Genesis Block", "0")
+        return Block(0, time.time(), {"data": "Genesis Block", "signature": None}, "0")
 
     def add_block(self, data):
         previous_block = self.chain[-1]
-        new_block = Block(len(self.chain), time.time(), data, previous_block.hash)
+        signed_data = self.sign_data(data)
+        new_block = Block(len(self.chain), time.time(), {"data": data, "signature": signed_data}, previous_block.hash)
         self.chain.append(new_block)
 
     def sign_data(self, data):
+        if isinstance(data, dict):
+            data = json.dumps(data, sort_keys=True)
         signature = self.private_key.sign(
             data.encode(),
             padding.PSS(
@@ -48,6 +52,8 @@ class PersonalBlockchain:
         return signature
 
     def verify_signature(self, data, signature):
+        if isinstance(data, dict):
+            data = json.dumps(data, sort_keys=True)
         try:
             self.public_key.verify(
                 signature,

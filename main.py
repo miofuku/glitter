@@ -5,7 +5,7 @@ from src.p2p_network import P2PNetwork
 async def main():
     network = SocialNetwork()
     p2p_network = P2PNetwork(network)
-    network.p2p_network = p2p_network
+    network.p2p_network = p2p_network  # Set the p2p_network attribute
 
     network.add_user("Alice")
     network.add_user("Bob")

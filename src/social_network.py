@@ -1,13 +1,14 @@
 import asyncio
 from typing import Dict, List
-from blockchain import PersonalBlockchain
-from zk_snark import generate_proof, verify_proof  # Hypothetical ZK-SNARK library
+from .blockchain import PersonalBlockchain
+from .zk_snark import generate_proof, verify_proof
 
 class SocialNetwork:
     def __init__(self):
         self.users: Dict[str, PersonalBlockchain] = {}
         self.connections: Dict[str, List[str]] = {}
-        self.pending_transactions: List[Dict] = {}
+        self.pending_transactions: List[Dict] = []
+        self.p2p_network = None
 
     def add_user(self, username):
         if username not in self.users:
@@ -22,8 +23,7 @@ class SocialNetwork:
     def post_data(self, username, data):
         if username in self.users:
             blockchain = self.users[username]
-            signed_data = blockchain.sign_data(data)
-            blockchain.add_block({"data": data, "signature": signed_data})
+            blockchain.add_block(data)
 
     async def propagate_data(self, username, data):
         if username in self.users:
@@ -69,11 +69,11 @@ class SocialNetwork:
             self.users[user2].add_trusted_node(user1)
 
     async def create_and_distribute_backup(self, username):
-        if username in self.users:
+        if username in self.users and self.p2p_network:
             await self.users[username].create_and_distribute_backup(self.p2p_network)
 
     async def restore_from_backup(self, username):
-        if username in self.users:
+        if username in self.users and self.p2p_network:
             success = await self.users[username].restore_from_backup(self.p2p_network)
             return success
         return False
