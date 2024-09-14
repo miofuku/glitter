@@ -1,7 +1,7 @@
 import asyncio
 from typing import Dict, List
-from .blockchain import PersonalBlockchain
-from .zk_snark import generate_proof, verify_proof
+from src.blockchain import PersonalBlockchain
+from src.zk_snark import generate_proof, verify_proof
 
 class SocialNetwork:
     def __init__(self):
@@ -27,8 +27,7 @@ class SocialNetwork:
 
     async def propagate_data(self, username, data):
         if username in self.users:
-            blockchain = self.users[username]
-            connections = [self.users[conn] for conn in self.connections[username]]
+            connections = self.connections[username]
             await asyncio.gather(*[self.send_data(conn, username, data) for conn in connections])
 
     async def send_data(self, receiver, sender, data):
