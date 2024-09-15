@@ -3,6 +3,7 @@ import asyncio
 from cryptography.fernet import Fernet
 import base64
 
+
 class BackupManager:
     def __init__(self, personal_blockchain):
         self.personal_blockchain = personal_blockchain
@@ -17,7 +18,8 @@ class BackupManager:
                 "timestamp": block.timestamp,
                 "data": {
                     "data": block.data["data"],
-                    "signature": base64.b64encode(block.data["signature"]).decode('utf-8') if block.data.get("signature") else None
+                    "signature": base64.b64encode(block.data["signature"]).decode('utf-8') if block.data.get(
+                        "signature") else None
                 },
                 "previous_hash": block.previous_hash,
                 "hash": block.hash

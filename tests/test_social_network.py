@@ -1,11 +1,13 @@
 import pytest
 from src.social_network import SocialNetwork
 
+
 def test_add_user():
     network = SocialNetwork()
     network.add_user("Alice")
     assert "Alice" in network.users
     assert "Alice" in network.connections
+
 
 def test_connect_users():
     network = SocialNetwork()
@@ -15,12 +17,14 @@ def test_connect_users():
     assert "Bob" in network.connections["Alice"]
     assert "Alice" in network.connections["Bob"]
 
+
 def test_post_data():
     network = SocialNetwork()
     network.add_user("Alice")
     network.post_data("Alice", "Test post")
     assert len(network.users["Alice"].chain) == 2  # Genesis block + new post
     assert network.users["Alice"].chain[-1].data["data"] == "Test post"
+
 
 @pytest.mark.asyncio
 async def test_propagate_data():
@@ -34,6 +38,7 @@ async def test_propagate_data():
     assert network.pending_transactions[0]["receiver"] == "Bob"
     assert network.pending_transactions[0]["data"] == "Test data"
 
+
 def test_consensus():
     network = SocialNetwork()
     network.add_user("Alice")
@@ -42,6 +47,7 @@ def test_consensus():
     network.consensus()
     assert len(network.pending_transactions) == 0
     assert network.users["Bob"].chain[-1].data["data"] == "Test data"
+
 
 def test_add_trusted_connection():
     network = SocialNetwork()

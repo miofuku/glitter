@@ -3,6 +3,7 @@ from typing import Dict, List
 from src.blockchain import PersonalBlockchain
 from src.zk_snark import generate_proof, verify_proof
 
+
 class SocialNetwork:
     def __init__(self):
         self.users: Dict[str, PersonalBlockchain] = {}

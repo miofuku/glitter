@@ -5,6 +5,7 @@ def generate_proof(data, claim):
     # Placeholder for generating a zero-knowledge proof
     return f"Proof for claim: {claim}"
 
+
 def verify_proof(proof, claim):
     # Placeholder for verifying a zero-knowledge proof
     return True  # Always returns True in this placeholder

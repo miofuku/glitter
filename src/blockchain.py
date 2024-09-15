@@ -3,7 +3,8 @@ import time
 import json
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from .backup_manager import BackupManager
+from backup_manager import BackupManager
+
 
 class Block:
     def __init__(self, index, timestamp, data, previous_hash):
@@ -16,6 +17,7 @@ class Block:
     def calculate_hash(self):
         block_string = f"{self.index}{self.timestamp}{self.data}{self.previous_hash}"
         return hashlib.sha256(block_string.encode()).hexdigest()
+
 
 class PersonalBlockchain:
     def __init__(self, owner):

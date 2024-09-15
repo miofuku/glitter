@@ -1,5 +1,6 @@
 import asyncio
 
+
 class P2PNetwork:
     def __init__(self, social_network):
         self.social_network = social_network
