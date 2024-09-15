@@ -2,6 +2,7 @@ import asyncio
 from src.social_network import SocialNetwork
 from src.p2p_network import P2PNetwork
 
+
 async def main():
     network = SocialNetwork()
     p2p_network = P2PNetwork(network)
