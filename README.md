@@ -1,17 +1,18 @@
-# glitter - Personal Blockchain Social Network
+# glitter - Interpersonal Network
 
 ## Overview
 
-This project is a prototype for a decentralized social network built on personal blockchains with zero-knowledge proof capabilities. It aims to provide a privacy-preserving platform for social interactions, offering users full control over their data while enabling verifiable social connections.
+This project is a revolutionary approach to social networking, leveraging personal blockchain technology to give users full control over their data while enabling privacy-preserving social interactions. 
+It aims to address the significant shortcomings of current Web2 social networks and professional platforms by prioritizing user privacy, data ownership, and authentic connections.
+
 ## Key features:
 
 * Personal blockchain for each user
-* Peer-to-peer network simulation
-* Digital signatures for data authenticity
-* Zero-knowledge proofs for privacy-preserving validation (placeholder implementation)
-* Simple consensus mechanism
-* Data propagation across the network
-* Backup and restoration system using a web of trust
+* Zero-knowledge proofs for privacy-preserving validation
+* Web of trust for distributed backups and data retrieval
+* Decentralized architecture with no central authority
+* Customizable privacy settings
+* Immutable record of personal and professional events
 
 ## Requirements
 
@@ -22,8 +23,8 @@ This project is a prototype for a decentralized social network built on personal
 
 1. Clone the repository:
 ```
-git clone https://github.com/yourusername/personal-blockchain-social-network.git
-cd personal-blockchain-social-network
+git clone https://github.com/miofuku/glitter.git
+cd glitter
 ```
 
 2. Create and activate a virtual environment:
