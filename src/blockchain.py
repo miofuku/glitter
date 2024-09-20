@@ -20,19 +20,26 @@ class Block:
 
 
 class PersonalBlockchain:
-    def __init__(self, owner):
-        self.chain = [self.create_genesis_block()]
+    def __init__(self, owner, genesis_message=None):
         self.owner = owner
         self.private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048
         )
         self.public_key = self.private_key.public_key()
+        self.chain = [self.create_genesis_block(genesis_message)]
         self.backup_manager = BackupManager(self)
         self.trusted_nodes = set()
 
-    def create_genesis_block(self):
-        return Block(0, time.time(), {"data": "Genesis Block", "signature": None}, "0")
+    def create_genesis_block(self, user_message=None):
+        genesis_data = {
+            "owner": self.owner,
+            "creation_time": time.time(),
+            "blockchain_version": "1.0",
+            "user_message": user_message or "Default genesis message"
+        }
+        signed_data = self.sign_data(genesis_data)
+        return Block(0, time.time(), {"data": genesis_data, "signature": signed_data}, "0")
 
     def add_block(self, data):
         previous_block = self.chain[-1]
