@@ -52,6 +52,7 @@ async def main():
     proof = network.generate_zk_proof("Alice", claim)
     is_valid = network.verify_zk_proof(proof, claim)
     print(f"Is Alice's claim valid? {is_valid}")
+    print("Note: This is a placeholder implementation and always returns True.")
 
 
 if __name__ == "__main__":
