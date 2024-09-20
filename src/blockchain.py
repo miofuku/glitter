@@ -3,7 +3,7 @@ import time
 import json
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from backup_manager import BackupManager
+from src.backup_manager import BackupManager
 
 
 class Block:
@@ -84,8 +84,8 @@ class PersonalBlockchain:
         self.trusted_nodes.discard(node)
 
     async def create_and_distribute_backup(self, p2p_network):
-        await self.backup_manager.distribute_backup(p2p_network, self.trusted_nodes)
+        await self.backup_manager.distribute_backup(p2p_network, list(self.trusted_nodes))
 
     async def restore_from_backup(self, p2p_network):
-        success = await self.backup_manager.request_backup_restoration(p2p_network, self.trusted_nodes)
+        success = await self.backup_manager.request_backup_restoration(p2p_network, list(self.trusted_nodes))
         return success
