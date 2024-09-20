@@ -1,6 +1,7 @@
 import random
 from typing import List, Tuple
 import base64
+import json
 
 
 class ShamirSecretSharing:
@@ -11,12 +12,24 @@ class ShamirSecretSharing:
     def _mod_inverse(self, x: int) -> int:
         return pow(x, self.prime - 2, self.prime)
 
-    def split_secret(self, secret: str, n: int, k: int) -> List[List[Tuple[int, int]]]:
+    def split_secret(self, personal_blockchain, n: int, k: int) -> List[List[Tuple[int, int]]]:
         if k > n:
             raise ValueError("k must be less than or equal to n")
 
-        # Encode the entire secret as base64
-        secret_b64 = base64.b64encode(secret.encode('utf-8'))
+        # Serialize the PersonalBlockchain object
+        serialized_data = json.dumps({
+            "owner": personal_blockchain.owner,
+            "chain": [{
+                "index": block.index,
+                "timestamp": block.timestamp,
+                "data": base64.b64encode(block.data).decode('utf-8') if isinstance(block.data, bytes) else block.data,
+                "previous_hash": block.previous_hash,
+                "hash": block.hash
+            } for block in personal_blockchain.chain]
+        })
+
+        # Encode the serialized data as base64
+        secret_b64 = base64.b64encode(serialized_data.encode('utf-8'))
 
         # Split the base64 string into chunks
         chunks = [secret_b64[i:i + self.chunk_size] for i in range(0, len(secret_b64), self.chunk_size)]
@@ -35,7 +48,7 @@ class ShamirSecretSharing:
 
         return shares_list
 
-    def reconstruct_secret(self, shares_list: List[List[Tuple[int, int]]], k: int) -> str:
+    def reconstruct_secret(self, shares_list: List[List[Tuple[int, int]]], k: int) -> dict:
         reconstructed_chunks = []
 
         for shares in shares_list:
@@ -59,7 +72,17 @@ class ShamirSecretSharing:
         # Combine chunks and decode
         reconstructed_b64 = b''.join(reconstructed_chunks)
         decoded_bytes = base64.b64decode(reconstructed_b64)
-        return decoded_bytes.decode('utf-8')
+        reconstructed_data = json.loads(decoded_bytes.decode('utf-8'))
+
+        # Decode base64-encoded data in blocks
+        for block in reconstructed_data['chain']:
+            if isinstance(block['data'], str):
+                try:
+                    block['data'] = base64.b64decode(block['data'])
+                except:
+                    pass  # If it's not base64-encoded, leave it as is
+
+        return reconstructed_data
 
 
 # Use a smaller prime for each chunk, but still large enough for security

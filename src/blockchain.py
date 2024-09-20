@@ -1,23 +1,10 @@
-import hashlib
 import time
 import json
+import base64
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from src.block import Block
 from src.backup_manager import BackupManager
-
-
-class Block:
-    def __init__(self, index, timestamp, data, previous_hash):
-        self.index = index
-        self.timestamp = timestamp
-        self.data = data
-        self.previous_hash = previous_hash
-        self.hash = self.calculate_hash()
-
-    def calculate_hash(self):
-        block_string = f"{self.index}{self.timestamp}{self.data}{self.previous_hash}"
-        return hashlib.sha256(block_string.encode()).hexdigest()
-
 
 class PersonalBlockchain:
     def __init__(self, owner, genesis_message=None):
@@ -36,20 +23,16 @@ class PersonalBlockchain:
             "owner": self.owner,
             "creation_time": time.time(),
             "blockchain_version": "1.0",
-            "user_message": user_message or "Default genesis message"
+            "user_message": user_message.decode('utf-8') if isinstance(user_message, bytes) else user_message or "Default genesis message"
         }
-        signed_data = self.sign_data(genesis_data)
+        signed_data = self.sign_data(json.dumps(genesis_data))
         return Block(0, time.time(), {"data": genesis_data, "signature": signed_data}, "0")
-
-    def add_block(self, data):
-        previous_block = self.chain[-1]
-        signed_data = self.sign_data(data)
-        new_block = Block(len(self.chain), time.time(), {"data": data, "signature": signed_data}, previous_block.hash)
-        self.chain.append(new_block)
 
     def sign_data(self, data):
         if isinstance(data, dict):
             data = json.dumps(data, sort_keys=True)
+        elif isinstance(data, bytes):
+            data = data.decode('utf-8')
         signature = self.private_key.sign(
             data.encode(),
             padding.PSS(
@@ -58,7 +41,15 @@ class PersonalBlockchain:
             ),
             hashes.SHA256()
         )
-        return signature
+        return base64.b64encode(signature).decode('utf-8')
+
+    def add_block(self, data):
+        previous_block = self.chain[-1]
+        if isinstance(data, bytes):
+            data = data.decode('utf-8')
+        signed_data = self.sign_data(data)
+        new_block = Block(len(self.chain), time.time(), {"data": data, "signature": signed_data}, previous_block.hash)
+        self.chain.append(new_block)
 
     def verify_signature(self, data, signature):
         if isinstance(data, dict):

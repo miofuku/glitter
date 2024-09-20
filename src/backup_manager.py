@@ -1,11 +1,11 @@
 import json
 import asyncio
 from cryptography.fernet import Fernet
-import base64
 from typing import List, Tuple
 from secrets import randbelow
 from functools import reduce
 import struct
+from src.block import Block
 
 
 class BackupManager:
@@ -18,11 +18,7 @@ class BackupManager:
             "chain": [{
                 "index": block.index,
                 "timestamp": block.timestamp,
-                "data": {
-                    "data": block.data["data"],
-                    "signature": base64.b64encode(block.data["signature"]).decode('utf-8') if block.data.get(
-                        "signature") else None
-                },
+                "data": block.data,
                 "previous_hash": block.previous_hash,
                 "hash": block.hash
             } for block in self.personal_blockchain.chain]
@@ -31,10 +27,15 @@ class BackupManager:
 
     def restore_from_backup(self, backup_data: bytes):
         data = json.loads(backup_data.decode())
+        self.personal_blockchain.owner = data['owner']
+        self.personal_blockchain.chain = [
+            Block(block['index'], block['timestamp'], block['data'], block['previous_hash'])
+            for block in data['chain']
+        ]
+        for block in self.personal_blockchain.chain:
+            block.hash = block.calculate_hash()
         print(f"Restored data for user {data['owner']}")
-        print(f"Chain length: {len(data['chain'])}")
-        # Here you would typically validate the data and update the blockchain
-        # For simplicity, we're just printing the restored data
+        print(f"Chain length: {len(self.personal_blockchain.chain)}")
 
     def split_secret(self, secret: bytes, n: int, k: int) -> List[Tuple[int, bytes]]:
         """Split a secret into n shares, where k shares are required to reconstruct the secret."""
@@ -59,14 +60,27 @@ class BackupManager:
                 acc = 1
                 for i, val in enumerate(vals):
                     if i != j:
-                        acc *= (var - val) * pow(vals[j] - val, -1, prime)
+                        try:
+                            acc *= (var - val) * pow(vals[j] - val, -1, prime)
+                        except ValueError:
+                            # If modular inverse doesn't exist, return None
+                            return None
                 return acc % prime
 
-            return sum(y * pi(x_s, x, j) for j, y in enumerate(y_s)) % prime
+            result = 0
+            for j, y in enumerate(y_s):
+                pi_val = pi(x_s, x, j)
+                if pi_val is None:
+                    return None
+                result += y * pi_val
+            return result % prime
 
         x_s = [share[0] for share in shares[:k]]
         y_s = [int.from_bytes(share[1], 'big') for share in shares[:k]]
         secret = lagrange_interpolation(0, x_s, y_s)
+
+        if secret is None:
+            return None
 
         # Convert the secret back to bytes, removing any leading zero bytes
         secret_bytes = secret.to_bytes((secret.bit_length() + 7) // 8, 'big')
@@ -95,13 +109,20 @@ class BackupManager:
                 break
         if shares:
             reconstructed_secret = self.reconstruct_secret(shares, (len(trusted_nodes) // 2) + 1)
+            if reconstructed_secret is None:
+                print("Failed to reconstruct the secret. The shares may be corrupted or insufficient.")
+                return False
 
             key = reconstructed_secret[:32]  # Fernet key is 32 bytes
             data_length = struct.unpack('>Q', reconstructed_secret[32:40])[0]
             encrypted_data = reconstructed_secret[40:40 + data_length]
 
             cipher_suite = Fernet(key)
-            decrypted_data = cipher_suite.decrypt(encrypted_data)
-            self.restore_from_backup(decrypted_data)
-            return True
+            try:
+                decrypted_data = cipher_suite.decrypt(encrypted_data)
+                self.restore_from_backup(decrypted_data)
+                return True
+            except Exception as e:
+                print(f"Failed to decrypt or restore the backup: {e}")
+                return False
         return False
