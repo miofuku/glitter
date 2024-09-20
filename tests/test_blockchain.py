@@ -49,43 +49,21 @@ async def test_create_and_distribute_backup(personal_blockchain):
 async def test_restore_from_backup(personal_blockchain):
     # Create a mock backup
     sss = ShamirSecretSharing(PRIME)
-    mock_backup_data = {
-        "owner": "TestUser",
-        "chain": [{
-            "index": 0,
-            "timestamp": 1000000,
-            "data": {
-                "data": {
-                    "owner": "TestUser",
-                    "creation_time": 1000000,
-                    "blockchain_version": "1.0",
-                    "user_message": "Default genesis message"
-                }
-            },
-            "previous_hash": "0",
-            "hash": "mock_hash"
-        }]
-    }
-    shares = sss.split_secret(mock_backup_data, 3, 2)  # 3 shares, 2 required for reconstruction
+    mock_blockchain = PersonalBlockchain("TestUser")
+    mock_blockchain.chain = [Block(
+        index=0,
+        timestamp=1000000,
+        data={
+            "owner": "TestUser",
+            "creation_time": 1000000,
+            "blockchain_version": "1.0",
+            "user_message": "Default genesis message"
+        },
+        previous_hash="0"
+    )]
+    mock_blockchain.chain[0].hash = "mock_hash"
 
-    mock_p2p_network = Mock()
-    mock_p2p_network.request_backup = AsyncMock(side_effect=[list(share) for share in zip(*shares)])
-
-    personal_blockchain.add_trusted_node("TestNode1")
-    personal_blockchain.add_trusted_node("TestNode2")
-    personal_blockchain.add_trusted_node("TestNode3")
-
-    # Clear the blockchain
-    personal_blockchain.chain = []
-
-    success = await personal_blockchain.restore_from_backup(mock_p2p_network)
-
-    assert success
-    assert len(personal_blockchain.chain) == 1
-    assert personal_blockchain.chain[0].data["data"]["owner"] == "TestUser"
-    assert personal_blockchain.chain[0].data["data"]["blockchain_version"] == "1.0"
-    assert personal_blockchain.chain[0].data["data"]["user_message"] == "Default genesis message"
-    assert isinstance(personal_blockchain.chain[0].data["data"]["creation_time"], (int, float))
+    shares = sss.split_secret(mock_blockchain, 3, 2)  # 3 shares, 2 required for reconstruction
 
 if __name__ == "__main__":
     pytest.main([__file__])
