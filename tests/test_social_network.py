@@ -1,6 +1,7 @@
 import pytest
 from src.social_network import SocialNetwork
 from src.p2p_network import P2PNetwork
+import base64
 
 
 @pytest.fixture
@@ -31,6 +32,7 @@ def test_post_data(social_network):
     social_network.add_user("TestUser")
     social_network.post_data("TestUser", "Test Post")
     assert len(social_network.users["TestUser"].chain) == 2  # Genesis block + new post
+    assert social_network.users["TestUser"].chain[-1].data["data"] == "Test Post"
 
 
 @pytest.mark.asyncio
@@ -40,6 +42,7 @@ async def test_propagate_data(social_network):
     social_network.connect_users("User1", "User2")
     await social_network.propagate_data("User1", "Test Data")
     assert len(social_network.pending_transactions) == 1
+    assert social_network.pending_transactions[0]["data"] == "Test Data"
 
 
 def test_consensus(social_network):
