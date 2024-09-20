@@ -7,12 +7,12 @@ It aims to address the significant shortcomings of current Web2 social networks 
 
 ## Key features:
 
-* Personal blockchain for each user
-* Zero-knowledge proofs for privacy-preserving validation
-* Web of trust for distributed backups and data retrieval
-* Decentralized architecture with no central authority
-* Customizable privacy settings
-* Immutable record of personal and professional events
+* **Personal Blockchains**: Each user has their own blockchain, ensuring data ownership and control.
+* **Decentralized Architecture**: No central authority controls user data.
+* **Privacy-Preserving**: Uses zero-knowledge proofs for claim verification without revealing underlying data.
+* **Secure Backups**: Implements Shamir's Secret Sharing for distributed, secure backups.
+* **P2P Communication**: Simulates a peer-to-peer network for data propagation and backup distribution.
+* **Data Integrity**: Blockchain technology ensures data immutability and integrity.
 
 ## Requirements
 
@@ -51,33 +51,26 @@ pytest tests/
 ```
 
 ## Components
-* `blockchain.py`: Implements the core blockchain functionality and personal blockchain management.
-* `social_network.py`: Manages the social network aspects, including user interactions and data propagation.
-* `p2p_network.py`: Simulates the peer-to-peer network for data exchange and backup distribution.
-* `backup_manager.py`: Handles the creation, distribution, and restoration of backups using the web of trust.
-* `zk_snark.py`: A placeholder for zero-knowledge proof functionality (not fully implemented).
+* `blockchain.py`: Implements the PersonalBlockchain class
+* `social_network.py`: Manages the SocialNetwork class
+* `p2p_network.py`: Simulates the P2PNetwork
+* `backup_manager.py`: Handles backup and restoration of personal blockchains
+* `shamir_secret_sharing.py`: Implements Shamir's Secret Sharing algorithm
+* `block.py`: Defines the Block class for blockchain entries
 
 ## Current Limitations
 This prototype is a conceptual implementation and has several limitations:
-1. The ZK-SNARK implementation is a placeholder and not functional.
-2. The P2P network is simulated and doesn't involve actual network communications.
-3. The consensus mechanism is simplified and not suitable for a real-world scenario.
-4. There's no persistent storage; all data is held in memory.
-5. Security measures are minimal and not sufficient for a production environment.
-6. There's no user interface; all interactions are programmatic.
+1. The zero-knowledge proof system is a placeholder and needs a real implementation.
+2. The P2P network is simulated and would need to be replaced with a real implementation for production use.
+3. The consensus mechanism is a simple placeholder and should be replaced with a more robust algorithm.
 
 ## Future Development
 To turn this prototype into a fully functional system, consider the following enhancements:
-1. Implement a real ZK-SNARK library for actual zero-knowledge proofs.
-2. Develop a proper P2P networking layer using a library like libp2p.
-3. Design and implement a more robust consensus algorithm suitable for personal blockchains.
-4. Add persistent storage for blockchain data.
-5. Implement comprehensive security measures, including encryption for data at rest and in transit.
-6. Develop a user-friendly interface (web or mobile app).
-7. Enhance the backup and restoration system with more sophisticated encryption and recovery mechanisms.
-8. Implement partial backups and versioning for more flexible data management.
-9. Conduct thorough testing, including security audits and penetration testing.
-10. Optimize for scalability to handle a large number of users and high transaction volumes.
+1. Implementing a real zero-knowledge proof system
+2. Developing a production-ready P2P network layer
+3. Enhancing the consensus mechanism
+4. Improving error handling and edge case management
+5. Expanding the test suite for better coverage
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
