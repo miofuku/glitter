@@ -1,7 +1,6 @@
 import asyncio
 from typing import Dict, List
 from src.blockchain import PersonalBlockchain
-from src.zk_snark import generate_proof, verify_proof
 
 
 class SocialNetwork:
@@ -51,17 +50,14 @@ class SocialNetwork:
         return True
 
     def generate_zk_proof(self, username, claim):
-        # Generate a ZK proof for a claim without revealing the underlying data
-        if username in self.users:
-            blockchain = self.users[username]
-            # This is a placeholder. In a real implementation, you'd use a ZK-SNARK library
-            proof = generate_proof(blockchain.chain, claim)
-            return proof
+        # Placeholder implementation
+        print(f"Generating proof for claim: {claim} by user: {username}")
+        return f"Proof for claim: {claim}"
 
     def verify_zk_proof(self, proof, claim):
-        # Verify a ZK proof
-        # This is a placeholder. In a real implementation, you'd use a ZK-SNARK library
-        return verify_proof(proof, claim)
+        # Placeholder implementation
+        print(f"Verifying proof: {proof} for claim: {claim}")
+        return True  # Always returns True in this placeholder
 
     def add_trusted_connection(self, user1, user2):
         if user1 in self.users and user2 in self.users:

@@ -1,3 +1,15 @@
+# Networking
+asyncio==3.4.3
+
+# Cryptography
 cryptography==3.4.7
+pycryptodome==3.10.1
+
+# Testing
 pytest==6.2.5
-pytest-asyncio==0.18.3
+pytest-asyncio==0.15.1
+
+# Development Tools
+black==21.9b0
+flake8==3.9.2
+mypy==0.910
