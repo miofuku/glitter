@@ -9,6 +9,8 @@ class SocialNetwork:
         self.connections: Dict[str, List[str]] = {}
         self.pending_transactions: List[Dict] = []
         self.p2p_network = None
+        self.backup_threshold = 3  # This is 'k'
+        self.total_shares = 5  # This is 'n'
 
     def add_user(self, username):
         if username not in self.users:
@@ -66,10 +68,27 @@ class SocialNetwork:
 
     async def create_and_distribute_backup(self, username):
         if username in self.users and self.p2p_network:
-            await self.users[username].create_and_distribute_backup(self.p2p_network)
+            user_blockchain = self.users[username]
+            trusted_nodes = list(user_blockchain.trusted_nodes)
 
+            if len(trusted_nodes) < self.total_shares:
+                print(f"Warning: Not enough trusted nodes. Have {len(trusted_nodes)}, need {self.total_shares}")
+                return
+
+            await user_blockchain.create_and_distribute_backup(
+                self.p2p_network,
+                trusted_nodes,
+                self.total_shares,
+                self.backup_threshold
+            )
     async def restore_from_backup(self, username):
         if username in self.users and self.p2p_network:
-            success = await self.users[username].restore_from_backup(self.p2p_network)
+            user_blockchain = self.users[username]
+            trusted_nodes = list(user_blockchain.trusted_nodes)
+            success = await user_blockchain.restore_from_backup(
+                self.p2p_network,
+                trusted_nodes,
+                self.backup_threshold
+            )
             return success
         return False

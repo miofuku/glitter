@@ -5,6 +5,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from src.block import Block
 from src.backup_manager import BackupManager
+import logging
+
 
 class PersonalBlockchain:
     def __init__(self, owner, genesis_message=None):
@@ -23,7 +25,8 @@ class PersonalBlockchain:
             "owner": self.owner,
             "creation_time": time.time(),
             "blockchain_version": "1.0",
-            "user_message": user_message.decode('utf-8') if isinstance(user_message, bytes) else user_message or "Default genesis message"
+            "user_message": user_message.decode('utf-8') if isinstance(user_message,
+                                                                       bytes) else user_message or "Default genesis message"
         }
         signed_data = self.sign_data(json.dumps(genesis_data))
         return Block(0, time.time(), {"data": genesis_data, "signature": signed_data}, "0")
@@ -74,9 +77,9 @@ class PersonalBlockchain:
     def remove_trusted_node(self, node):
         self.trusted_nodes.discard(node)
 
-    async def create_and_distribute_backup(self, p2p_network):
-        await self.backup_manager.distribute_backup(p2p_network, list(self.trusted_nodes))
+    async def create_and_distribute_backup(self, p2p_network, trusted_nodes, n, k):
+        await self.backup_manager.distribute_backup(p2p_network, trusted_nodes, n, k)
 
-    async def restore_from_backup(self, p2p_network):
-        success = await self.backup_manager.request_backup_restoration(p2p_network, list(self.trusted_nodes))
-        return success
+    async def restore_from_backup(self, p2p_network, trusted_nodes, k):
+        logging.info(f"PersonalBlockchain: Starting restoration process for {self.owner}")
+        return await self.backup_manager.request_backup_restoration(p2p_network, trusted_nodes, k)

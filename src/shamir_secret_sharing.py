@@ -3,33 +3,46 @@ from typing import List, Tuple
 import base64
 import json
 import math
+import logging
+
 
 class ShamirSecretSharing:
     def __init__(self, prime: int):
         self.prime = prime
         self.chunk_size = (prime.bit_length() - 1) // 8  # Maximum bytes that fit in the prime
 
-    def _mod_inverse(self, x: int) -> int:
-        return pow(x, self.prime - 2, self.prime)
-
     def split_secret(self, personal_blockchain, n: int, k: int) -> List[List[Tuple[int, int]]]:
+        if not isinstance(n, int) or not isinstance(k, int):
+            raise TypeError("n and k must be integers")
+        if n < 2:
+            raise ValueError("n must be at least 2")
+        if k < 2:
+            raise ValueError("k must be at least 2")
         if k > n:
             raise ValueError("k must be less than or equal to n")
 
         # Serialize the PersonalBlockchain object
-        serialized_data = json.dumps({
-            "owner": personal_blockchain.owner,
-            "chain": [{
-                "index": block.index,
-                "timestamp": block.timestamp,
-                "data": base64.b64encode(json.dumps(block.data).encode('utf-8')).decode('utf-8'),
-                "previous_hash": block.previous_hash,
-                "hash": block.hash
-            } for block in personal_blockchain.chain]
-        }).encode('utf-8')
+        try:
+            serialized_data = json.dumps({
+                "owner": personal_blockchain.owner,
+                "chain": [{
+                    "index": block.index,
+                    "timestamp": block.timestamp,
+                    "data": base64.b64encode(json.dumps(block.data).encode('utf-8')).decode('utf-8'),
+                    "previous_hash": block.previous_hash,
+                    "hash": block.hash
+                } for block in personal_blockchain.chain]
+            }).encode('utf-8')
+        except (TypeError, ValueError) as e:
+            logging.error(f"Failed to serialize blockchain: {e}")
+            raise
+
+        logging.debug(f"Serialized data length: {len(serialized_data)} bytes")
+        logging.debug(f"Serialized data (first 100 chars): {serialized_data[:100]}...")
 
         # Split the serialized data into chunks
         chunks = [serialized_data[i:i + self.chunk_size] for i in range(0, len(serialized_data), self.chunk_size)]
+        logging.debug(f"Number of chunks: {len(chunks)}")
 
         # Apply Shamir's Secret Sharing to each chunk
         shares_list = []
@@ -43,9 +56,17 @@ class ShamirSecretSharing:
                 shares.append((x, y))
             shares_list.append(shares)
 
+        logging.debug(f"Number of share lists: {len(shares_list)}")
+        logging.debug(f"Number of shares in first list: {len(shares_list[0])}")
+
         return shares_list
 
     def reconstruct_secret(self, shares_list: List[List[Tuple[int, int]]], k: int) -> dict:
+        if not shares_list or not all(shares_list):
+            raise ValueError("Invalid shares_list")
+        if not isinstance(k, int) or k < 2:
+            raise ValueError("k must be an integer greater than or equal to 2")
+
         reconstructed_chunks = []
 
         for shares in shares_list:
@@ -70,13 +91,24 @@ class ShamirSecretSharing:
 
         # Combine chunks and decode
         reconstructed_data = b''.join(reconstructed_chunks)
-        json_data = json.loads(reconstructed_data.decode('utf-8'))
+        logging.debug(f"Reconstructed data length: {len(reconstructed_data)} bytes")
+        logging.debug(f"Reconstructed data (first 100 chars): {reconstructed_data[:100]}...")
 
-        # Decode base64-encoded data in blocks
-        for block in json_data['chain']:
-            block['data'] = json.loads(base64.b64decode(block['data']).decode('utf-8'))
+        try:
+            json_data = json.loads(reconstructed_data.decode('utf-8'))
+            # Decode the base64 encoded data in each block
+            for block in json_data['chain']:
+                block['data'] = json.loads(base64.b64decode(block['data']).decode('utf-8'))
+            logging.debug(f"Parsed JSON data keys: {list(json_data.keys())}")
+            return json_data
+        except json.JSONDecodeError as e:
+            logging.error(f"JSON decode error: {e}")
+            logging.error(f"Problematic data (first 100 chars): {reconstructed_data[:100]}...")
+            raise
 
-        return json_data
+    def _mod_inverse(self, x: int) -> int:
+        return pow(x, self.prime - 2, self.prime)
+
 
 # Use a smaller prime for each chunk, but still large enough for security
 PRIME = 2 ** 256 - 189  # This is a 256-bit prime number

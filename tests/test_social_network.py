@@ -1,7 +1,9 @@
 import pytest
 from src.social_network import SocialNetwork
 from src.p2p_network import P2PNetwork
-import base64
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 @pytest.fixture
@@ -73,16 +75,47 @@ def test_add_trusted_connection(social_network):
 async def test_create_and_distribute_backup(social_network, p2p_network):
     social_network.p2p_network = p2p_network
     social_network.add_user("TestUser")
-    social_network.users["TestUser"].add_trusted_node("TrustedNode")
+    for i in range(social_network.total_shares):
+        social_network.users["TestUser"].add_trusted_node(f"TrustedNode{i}")
     await social_network.create_and_distribute_backup("TestUser")
-    assert len(p2p_network.backups) > 0
+    assert len(p2p_network.backups) == social_network.total_shares
 
 
 @pytest.mark.asyncio
 async def test_restore_from_backup(social_network, p2p_network):
     social_network.p2p_network = p2p_network
     social_network.add_user("TestUser")
-    social_network.users["TestUser"].add_trusted_node("TrustedNode")
+    for i in range(social_network.total_shares):
+        social_network.users["TestUser"].add_trusted_node(f"TrustedNode{i}")
+
+    # Create some data to backup
+    social_network.post_data("TestUser", "Test data for backup")
+
+    # Create and distribute backup
     await social_network.create_and_distribute_backup("TestUser")
+
+    # Clear the user's blockchain to simulate data loss
+    original_chain = social_network.users["TestUser"].chain
+    social_network.users["TestUser"].chain = []
+
+    # Attempt to restore from backup
     success = await social_network.restore_from_backup("TestUser")
-    assert success
+
+    assert success, "Failed to restore from backup"
+    restored_chain = social_network.users["TestUser"].chain
+    assert len(restored_chain) == len(original_chain), "Restored chain length doesn't match original"
+
+    # Log the contents of the original and restored chains for debugging
+    logging.debug(f"Original chain last block data: {original_chain[-1].data}")
+    logging.debug(f"Restored chain last block data: {restored_chain[-1].data}")
+
+    # Compare the data directly
+    assert restored_chain[-1].data == original_chain[-1].data, "Restored data doesn't match original"
+
+    # Test with insufficient trusted nodes
+    social_network.users["TestUser"].trusted_nodes.clear()
+    success = await social_network.restore_from_backup("TestUser")
+    assert not success, "Unexpectedly succeeded with insufficient trusted nodes"
+
+if __name__ == "__main__":
+    pytest.main([__file__])
