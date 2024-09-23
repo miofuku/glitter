@@ -8,22 +8,22 @@ async def main():
     p2p_network = P2PNetwork(network)
     network.p2p_network = p2p_network  # Set the p2p_network attribute
 
-    network.add_user("Alice")
-    network.add_user("Bob")
-    network.add_user("Charlie")
+    # Add more users to ensure enough trusted nodes
+    users = ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace"]
+    for user in users:
+        network.add_user(user)
 
-    network.connect_users("Alice", "Bob")
-    network.connect_users("Alice", "Charlie")
-    network.connect_users("Bob", "Charlie")
+    # Create more connections and trusted connections
+    for i in range(len(users)):
+        for j in range(i + 1, len(users)):
+            network.connect_users(users[i], users[j])
+            network.add_trusted_connection(users[i], users[j])
 
-    network.add_trusted_connection("Alice", "Bob")
-    network.add_trusted_connection("Alice", "Charlie")
+    # Add nodes to the P2P network
+    for i, user in enumerate(users):
+        p2p_network.add_node(user, f"192.168.1.{i + 1}")
 
-    p2p_network.add_node("Alice", "192.168.1.1")
-    p2p_network.add_node("Bob", "192.168.1.2")
-    p2p_network.add_node("Charlie", "192.168.1.3")
-
-    # Post data
+    # Post data for Alice
     data = "Hello, this is my first post!"
     network.post_data("Alice", data)
 
@@ -33,7 +33,6 @@ async def main():
     # Create and distribute backup
     await network.create_and_distribute_backup("Alice")
 
-    # Simulate data loss and restoration
     print("Simulating data loss for Alice...")
     network.users["Alice"].chain = []  # Clear Alice's blockchain
 
@@ -41,6 +40,8 @@ async def main():
     success = await network.restore_from_backup("Alice")
     if success:
         print("Alice's data restored successfully!")
+        print(f"Alice's chain length: {len(network.users['Alice'].chain)}")
+        print(f"Last block data: {network.users['Alice'].chain[-1].data}")
     else:
         print("Failed to restore Alice's data.")
 
