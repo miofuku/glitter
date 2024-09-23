@@ -10,9 +10,9 @@ It aims to address the significant shortcomings of current Web2 social networks 
 * **Personal Blockchains**: Each user has their own blockchain, ensuring data ownership and control.
 * **Decentralized Architecture**: No central authority controls user data.
 * **Privacy-Preserving**: Uses zero-knowledge proofs for claim verification without revealing underlying data.
-* **Secure Backups**: Implements Shamir's Secret Sharing for distributed, secure backups.
+* **Distributed Backup System**: Implements Shamir's Secret Sharing for distributed, secure backups.
 * **P2P Communication**: Simulates a peer-to-peer network for data propagation and backup distribution.
-* **Data Integrity**: Blockchain technology ensures data immutability and integrity.
+* **Consensus Mechanism**: Implements a simple majority consensus (can be extended for more robust mechanisms).
 
 ## Requirements
 
@@ -51,12 +51,15 @@ pytest tests/
 ```
 
 ## Components
-* `blockchain.py`: Implements the PersonalBlockchain class
-* `social_network.py`: Manages the SocialNetwork class
-* `p2p_network.py`: Simulates the P2PNetwork
-* `backup_manager.py`: Handles backup and restoration of personal blockchains
-* `shamir_secret_sharing.py`: Implements Shamir's Secret Sharing algorithm
-* `block.py`: Defines the Block class for blockchain entries
+* `src/`:
+  * `blockchain.py`: Implements the PersonalBlockchain class
+  * `social_network.py`: Manages the SocialNetwork class
+  * `p2p_network.py`: Simulates the P2PNetwork
+  * `backup_manager.py`: Handles backup and restoration of personal blockchains
+  * `shamir_secret_sharing.py`: Implements Shamir's Secret Sharing algorithm
+  * `zk_snark.py`: Placeholder for zero-knowledge proof implementation.
+  * `block.py`: Defines the Block class for blockchain entries
+* `tests/`: Contains unit and integration tests for all major components.
 
 ## Current Limitations
 This prototype is a conceptual implementation and has several limitations:
@@ -66,11 +69,11 @@ This prototype is a conceptual implementation and has several limitations:
 
 ## Future Development
 To turn this prototype into a fully functional system, consider the following enhancements:
-1. Implementing a real zero-knowledge proof system
-2. Developing a production-ready P2P network layer
-3. Enhancing the consensus mechanism
-4. Improving error handling and edge case management
-5. Expanding the test suite for better coverage
+1. Implement a real zero-knowledge proof system to replace the current placeholder.
+2. Enhance the P2P network simulation with actual network capabilities.
+3. Develop a more sophisticated consensus mechanism.
+4. Implement a user interface for easier interaction with the network.
+5. Conduct a comprehensive security audit before any production use.
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
