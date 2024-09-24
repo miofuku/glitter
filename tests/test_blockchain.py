@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, Mock
-from src.blockchain import PersonalBlockchain, Block
+from src.blockchain import PersonalBlockchain, Block, TrustedNode
 from src.shamir_secret_sharing import ShamirSecretSharing, PRIME
 import base64
 import logging
@@ -37,10 +37,10 @@ def test_verify_signature(personal_blockchain):
 
 
 def test_add_and_remove_trusted_node(personal_blockchain):
-    personal_blockchain.add_trusted_node("TestNode")
-    assert "TestNode" in personal_blockchain.trusted_nodes
+    personal_blockchain.add_trusted_node("TestNode", "contact", "192.168.1.1")
+    assert any(node.node_id == "TestNode" for node in personal_blockchain.trusted_nodes)
     personal_blockchain.remove_trusted_node("TestNode")
-    assert "TestNode" not in personal_blockchain.trusted_nodes
+    assert all(node.node_id != "TestNode" for node in personal_blockchain.trusted_nodes)
 
 
 @pytest.mark.asyncio
@@ -49,11 +49,11 @@ async def test_create_and_distribute_backup(personal_blockchain):
     mock_p2p_network.send_backup = AsyncMock()
 
     n, k = 5, 3
-    trusted_nodes = [f"TestNode{i}" for i in range(n)]
+    trusted_nodes = [TrustedNode(f"TestNode{i}", "contact", f"192.168.1.{i}") for i in range(n)]
     for node in trusted_nodes:
-        personal_blockchain.add_trusted_node(node)
+        personal_blockchain.add_trusted_node(node.node_id, node.node_type, node.ip_address)
 
-    await personal_blockchain.create_and_distribute_backup(mock_p2p_network, trusted_nodes, n, k)
+    await personal_blockchain.create_and_distribute_backup(mock_p2p_network, n, k)
 
     assert mock_p2p_network.send_backup.call_count == n
 

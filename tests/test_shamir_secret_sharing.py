@@ -11,7 +11,7 @@ def sss():
 
 @pytest.fixture
 def personal_blockchain():
-    return PersonalBlockchain("TestUser", b"Genesis Block Data")
+    return PersonalBlockchain("TestUser")
 
 
 def test_split_and_reconstruct(sss, personal_blockchain):
