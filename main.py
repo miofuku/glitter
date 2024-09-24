@@ -1,3 +1,5 @@
+# In main.py
+
 import asyncio
 from src.social_network import SocialNetwork
 from src.p2p_network import P2PNetwork
@@ -6,22 +8,34 @@ from src.p2p_network import P2PNetwork
 async def main():
     network = SocialNetwork()
     p2p_network = P2PNetwork(network)
-    network.p2p_network = p2p_network  # Set the p2p_network attribute
+    network.p2p_network = p2p_network
 
-    # Add more users to ensure enough trusted nodes
-    users = ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace"]
+    # Add users
+    users = ["Alice", "Bob", "Charlie", "David", "Eve"]
     for user in users:
         network.add_user(user)
+        p2p_network.add_node(user, f"192.168.1.{users.index(user) + 1}", f"{user.lower()}_id")
 
-    # Create more connections and trusted connections
+    # Create connections and add trusted nodes
     for i in range(len(users)):
         for j in range(i + 1, len(users)):
             network.connect_users(users[i], users[j])
-            network.add_trusted_connection(users[i], users[j])
 
-    # Add nodes to the P2P network
-    for i, user in enumerate(users):
-        p2p_network.add_node(user, f"192.168.1.{i + 1}")
+            # Add as trusted contact
+            network.add_trusted_connection(users[i], users[j], "contact")
+
+            # Add user's device as trusted node
+            device_id = f"{users[i].lower()}_device"
+            device_ip = f"192.168.2.{i + 1}"
+            network.users[users[i]].add_trusted_node(device_id, "device", device_ip)
+            p2p_network.add_node(f"{users[i]}_device", device_ip, device_id)
+
+    # Demonstrate IP address change
+    print("Changing IP address for Alice's device...")
+    alice_device_id = "alice_device"
+    new_ip = "192.168.3.1"
+    p2p_network.update_node_ip(alice_device_id, new_ip)
+    print(f"Alice's device new IP: {new_ip}")
 
     # Post data for Alice
     data = "Hello, this is my first post!"
@@ -31,6 +45,7 @@ async def main():
     await network.propagate_data("Alice", data)
 
     # Create and distribute backup
+    print("Creating and distributing backup for Alice...")
     await network.create_and_distribute_backup("Alice")
 
     print("Simulating data loss for Alice...")
@@ -48,12 +63,17 @@ async def main():
     # Run consensus
     network.consensus()
 
-    # Generate and verify ZK proof
+    # Generate and verify ZK proof (placeholder implementation)
     claim = "I have made at least one post"
     proof = network.generate_zk_proof("Alice", claim)
     is_valid = network.verify_zk_proof(proof, claim)
     print(f"Is Alice's claim valid? {is_valid}")
     print("Note: This is a placeholder implementation and always returns True.")
+
+    # Print trusted nodes for Alice
+    print("\nAlice's trusted nodes:")
+    for node in network.users["Alice"].trusted_nodes:
+        print(f"Node ID: {node.node_id}, Type: {node.node_type}, IP: {node.ip_address}")
 
 
 if __name__ == "__main__":
