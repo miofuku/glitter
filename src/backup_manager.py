@@ -11,17 +11,17 @@ class BackupManager:
 
     async def distribute_backup(self, p2p_network, trusted_nodes, n, k):
         shares_list = self.sss.split_secret(self.personal_blockchain, n, k)
-        tasks = [p2p_network.send_backup(node, share) for node, share in zip(trusted_nodes, zip(*shares_list))]
+        tasks = [p2p_network.send_backup(node.node_id, share) for node, share in zip(trusted_nodes, zip(*shares_list))]
         await asyncio.gather(*tasks)
 
     async def request_backup_restoration(self, p2p_network, trusted_nodes, k):
         logging.info(f"Starting backup restoration. Required shares: {k}")
         shares_list = []
         for node in trusted_nodes:
-            share = await p2p_network.request_backup(node)
+            share = await p2p_network.request_backup(node.node_id)
             if share:
                 shares_list.append(share)
-                logging.info(f"Received share from node {node}")
+                logging.info(f"Received share from node {node.node_id}")
             if len(shares_list) >= k:
                 break
 

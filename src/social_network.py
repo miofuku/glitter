@@ -61,15 +61,26 @@ class SocialNetwork:
         print(f"Verifying proof: {proof} for claim: {claim}")
         return True  # Always returns True in this placeholder
 
-    def add_trusted_connection(self, user1, user2):
+    def add_trusted_connection(self, user1, user2, node_type):
         if user1 in self.users and user2 in self.users:
-            self.users[user1].add_trusted_node(user2)
-            self.users[user2].add_trusted_node(user1)
+            node_id_1 = f"{user1}_to_{user2}"
+            node_id_2 = f"{user2}_to_{user1}"
+            ip_1 = self.p2p_network.nodes.get(user1)
+            ip_2 = self.p2p_network.nodes.get(user2)
+
+            self.users[user1].add_trusted_node(node_id_2, node_type, ip_2)
+            self.users[user2].add_trusted_node(node_id_1, node_type, ip_1)
+
+            # Add nodes to P2P network if not already present
+            if node_id_1 not in self.p2p_network.node_ids:
+                self.p2p_network.add_node(node_id_1, ip_1, node_id_1)
+            if node_id_2 not in self.p2p_network.node_ids:
+                self.p2p_network.add_node(node_id_2, ip_2, node_id_2)
 
     async def create_and_distribute_backup(self, username):
         if username in self.users and self.p2p_network:
             user_blockchain = self.users[username]
-            trusted_nodes = list(user_blockchain.trusted_nodes)
+            trusted_nodes = user_blockchain.trusted_nodes
 
             if len(trusted_nodes) < self.total_shares:
                 print(f"Warning: Not enough trusted nodes. Have {len(trusted_nodes)}, need {self.total_shares}")
@@ -77,17 +88,15 @@ class SocialNetwork:
 
             await user_blockchain.create_and_distribute_backup(
                 self.p2p_network,
-                trusted_nodes,
                 self.total_shares,
                 self.backup_threshold
             )
+
     async def restore_from_backup(self, username):
         if username in self.users and self.p2p_network:
             user_blockchain = self.users[username]
-            trusted_nodes = list(user_blockchain.trusted_nodes)
             success = await user_blockchain.restore_from_backup(
                 self.p2p_network,
-                trusted_nodes,
                 self.backup_threshold
             )
             return success

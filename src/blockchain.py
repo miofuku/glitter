@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from src.block import Block
 from src.backup_manager import BackupManager
+from src.trusted_node import TrustedNode
 import logging
 
 
@@ -18,7 +19,7 @@ class PersonalBlockchain:
         self.public_key = self.private_key.public_key()
         self.chain = [self.create_genesis_block(genesis_message)]
         self.backup_manager = BackupManager(self)
-        self.trusted_nodes = set()
+        self.trusted_nodes = []  # List of TrustedNode objects
 
     def create_genesis_block(self, user_message=None):
         genesis_data = {
@@ -71,15 +72,23 @@ class PersonalBlockchain:
         except:
             return False
 
-    def add_trusted_node(self, node):
-        self.trusted_nodes.add(node)
+    def add_trusted_node(self, node_id, node_type, initial_ip):
+        new_node = TrustedNode(node_id, node_type, initial_ip)
+        if new_node not in self.trusted_nodes:
+            self.trusted_nodes.append(new_node)
 
-    def remove_trusted_node(self, node):
-        self.trusted_nodes.discard(node)
+    def remove_trusted_node(self, node_id):
+        self.trusted_nodes = [node for node in self.trusted_nodes if node.node_id != node_id]
 
-    async def create_and_distribute_backup(self, p2p_network, trusted_nodes, n, k):
-        await self.backup_manager.distribute_backup(p2p_network, trusted_nodes, n, k)
+    def update_node_ip(self, node_id, new_ip):
+        for node in self.trusted_nodes:
+            if node.node_id == node_id:
+                node.ip_address = new_ip
+                break
 
-    async def restore_from_backup(self, p2p_network, trusted_nodes, k):
+    async def create_and_distribute_backup(self, p2p_network, n, k):
+        await self.backup_manager.distribute_backup(p2p_network, self.trusted_nodes, n, k)
+
+    async def restore_from_backup(self, p2p_network, k):
         logging.info(f"PersonalBlockchain: Starting restoration process for {self.owner}")
-        return await self.backup_manager.request_backup_restoration(p2p_network, trusted_nodes, k)
+        return await self.backup_manager.request_backup_restoration(p2p_network, self.trusted_nodes, k)
