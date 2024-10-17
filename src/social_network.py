@@ -2,6 +2,7 @@ import asyncio
 from typing import Dict, List
 from src.blockchain import PersonalBlockchain
 from src.p2p_network import P2PNetwork
+import logging
 
 
 class SocialNetwork:
@@ -39,6 +40,17 @@ class SocialNetwork:
             # Add users to each other's P2P networks
             self.p2p_networks[user1].add_node(user2, self.p2p_networks[user2].nodes[user2][0], f"{user2}_id")
             self.p2p_networks[user2].add_node(user1, self.p2p_networks[user1].nodes[user1][0], f"{user1}_id")
+            # Set up trusted connections
+            self.add_trusted_connection(user1, user2, "contact")
+            self.add_trusted_connection(user2, user1, "contact")
+            logging.info(f"Connected users {user1} and {user2}, and set up trusted connections")
+
+    def add_trusted_connection(self, user1, user2, node_type):
+        if user1 in self.users and user2 in self.users:
+            user1_blockchain = self.users[user1]
+            user2_port, user2_id = self.p2p_networks[user2].nodes[user2]
+            user1_blockchain.add_trusted_node(user2_id, node_type, f"{self.host}:{user2_port}")
+            logging.info(f"Added trusted connection for {user1}: {user2_id} ({node_type})")
 
     def post_data(self, username, data):
         if username in self.users:
@@ -48,6 +60,31 @@ class SocialNetwork:
     async def propagate_data(self, username, data):
         if username in self.users:
             await self.p2p_networks[username].broadcast(username, data)
+
+    async def create_and_distribute_backup(self, username):
+        if username in self.users:
+            user_blockchain = self.users[username]
+            trusted_nodes = user_blockchain.trusted_nodes
+
+            if len(trusted_nodes) < self.total_shares:
+                print(f"Warning: Not enough trusted nodes. Have {len(trusted_nodes)}, need {self.total_shares}")
+                return
+
+            await user_blockchain.create_and_distribute_backup(
+                self.p2p_networks[username],
+                self.total_shares,
+                self.backup_threshold
+            )
+
+    async def restore_from_backup(self, username):
+        if username in self.users:
+            user_blockchain = self.users[username]
+            success = await user_blockchain.restore_from_backup(
+                self.p2p_networks[username],
+                self.backup_threshold
+            )
+            return success
+        return False
 
     async def send_data(self, receiver, sender, data):
         # Simulate network delay
@@ -93,28 +130,3 @@ class SocialNetwork:
                 self.p2p_network.add_node(node_id_1, ip_1, node_id_1)
             if node_id_2 not in self.p2p_network.node_ids:
                 self.p2p_network.add_node(node_id_2, ip_2, node_id_2)
-
-    async def create_and_distribute_backup(self, username):
-        if username in self.users and self.p2p_networks:
-            user_blockchain = self.users[username]
-            trusted_nodes = user_blockchain.trusted_nodes
-
-            if len(trusted_nodes) < self.total_shares:
-                print(f"Warning: Not enough trusted nodes. Have {len(trusted_nodes)}, need {self.total_shares}")
-                return
-
-            await user_blockchain.create_and_distribute_backup(
-                self.p2p_network,
-                self.total_shares,
-                self.backup_threshold
-            )
-
-    async def restore_from_backup(self, username):
-        if username in self.users and self.p2p_networks:
-            user_blockchain = self.users[username]
-            success = await user_blockchain.restore_from_backup(
-                self.p2p_networks,
-                self.backup_threshold
-            )
-            return success
-        return False
