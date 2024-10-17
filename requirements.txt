@@ -1,5 +1,6 @@
 # Networking
 asyncio==3.4.3
+aiohttp==3.10.9
 
 # Cryptography
 cryptography==3.4.7

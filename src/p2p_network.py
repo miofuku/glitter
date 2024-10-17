@@ -1,43 +1,62 @@
 import asyncio
+import aiohttp
+from aiohttp import web
+import logging
 
 
 class P2PNetwork:
-    def __init__(self, social_network):
-        self.social_network = social_network
-        self.nodes = {}  # username: ip_address
-        self.node_ids = {}  # node_id: username
-        self.backups = {}  # node_id: backup_data
+    def __init__(self, host='localhost'):
+        self.host = host
+        self.nodes = {}  # username: (port, node_id)
+        self.app = web.Application()
+        self.app.router.add_post('/', self.receive_data)
+        self.runner = None
 
-    def add_node(self, username, ip_address, node_id):
-        self.nodes[username] = ip_address
-        self.node_ids[node_id] = username
+    async def start(self, port):
+        self.runner = web.AppRunner(self.app)
+        await self.runner.setup()
+        site = web.TCPSite(self.runner, self.host, port)
+        await site.start()
+        logging.info(f"P2P network node started on {self.host}:{port}")
 
-    def update_node_ip(self, node_id, new_ip):
-        if node_id in self.node_ids:
-            username = self.node_ids[node_id]
-            self.nodes[username] = new_ip
+    async def stop(self):
+        if self.runner:
+            await self.runner.cleanup()
 
-    async def send_backup(self, node_id, backup_data):
-        await asyncio.sleep(0.1)  # Simulate network delay
-        self.backups[node_id] = backup_data
-        print(f"Backup sent to node: {node_id}")
-        return True
+    def add_node(self, username, port, node_id):
+        self.nodes[username] = (port, node_id)
 
-    async def request_backup(self, node_id):
-        await asyncio.sleep(0.1)  # Simulate network delay
-        if node_id in self.backups:
-            print(f"Backup requested from node: {node_id}")
-            return self.backups[node_id]
-        return None
+    async def receive_data(self, request):
+        data = await request.json()
+        sender = data.get('sender')
+        message = data.get('message')
+        logging.info(f"Received data from {sender}: {message}")
+        # Here you would process the received data, e.g., add it to the blockchain
+        return web.Response(text="Data received")
 
-    async def broadcast(self, sender, message):
+    async def send_data(self, receiver_username, sender_username, data):
+        if receiver_username not in self.nodes:
+            raise ValueError(f"Unknown receiver: {receiver_username}")
+
+        receiver_port, _ = self.nodes[receiver_username]
+        message = {
+            'sender': sender_username,
+            'message': data
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f'http://{self.host}:{receiver_port}', json=message) as response:
+                    if response.status == 200:
+                        logging.info(f"Data sent to {receiver_username} successfully")
+                    else:
+                        logging.error(f"Failed to send data to {receiver_username}. Status: {response.status}")
+        except aiohttp.ClientError as e:
+            logging.error(f"Network error when sending data to {receiver_username}: {str(e)}")
+
+    async def broadcast(self, sender_username, data):
         tasks = []
-        for username, ip_address in self.nodes.items():
-            if username != sender:
-                tasks.append(self.send_message(ip_address, message))
+        for username in self.nodes:
+            if username != sender_username:
+                tasks.append(self.send_data(username, sender_username, data))
         await asyncio.gather(*tasks)
-
-    async def send_message(self, ip_address, message):
-        # Simulate sending a message over the network
-        await asyncio.sleep(0.1)
-        print(f"Sent message to {ip_address}: {message}")

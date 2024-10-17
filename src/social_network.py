@@ -1,26 +1,44 @@
 import asyncio
 from typing import Dict, List
 from src.blockchain import PersonalBlockchain
+from src.p2p_network import P2PNetwork
 
 
 class SocialNetwork:
-    def __init__(self):
+    def __init__(self, host='localhost', start_port=8000):
         self.users: Dict[str, PersonalBlockchain] = {}
         self.connections: Dict[str, List[str]] = {}
-        self.pending_transactions: List[Dict] = []
-        self.p2p_network = None
+        self.p2p_networks: Dict[str, P2PNetwork] = {}
+        self.host = host
+        self.start_port = start_port
         self.backup_threshold = 3  # This is 'k'
         self.total_shares = 5  # This is 'n'
+
+    async def start(self):
+        start_tasks = [p2p_network.start(self.start_port + i)
+                       for i, p2p_network in enumerate(self.p2p_networks.values())]
+        await asyncio.gather(*start_tasks)
+
+    async def stop(self):
+        stop_tasks = [p2p_network.stop() for p2p_network in self.p2p_networks.values()]
+        await asyncio.gather(*stop_tasks)
 
     def add_user(self, username):
         if username not in self.users:
             self.users[username] = PersonalBlockchain(username)
             self.connections[username] = []
+            new_p2p_network = P2PNetwork(self.host)
+            self.p2p_networks[username] = new_p2p_network
+            port = self.start_port + len(self.users) - 1
+            new_p2p_network.add_node(username, port, f"{username}_id")
 
     def connect_users(self, user1, user2):
         if user1 in self.users and user2 in self.users:
             self.connections[user1].append(user2)
             self.connections[user2].append(user1)
+            # Add users to each other's P2P networks
+            self.p2p_networks[user1].add_node(user2, self.p2p_networks[user2].nodes[user2][0], f"{user2}_id")
+            self.p2p_networks[user2].add_node(user1, self.p2p_networks[user1].nodes[user1][0], f"{user1}_id")
 
     def post_data(self, username, data):
         if username in self.users:
@@ -29,8 +47,7 @@ class SocialNetwork:
 
     async def propagate_data(self, username, data):
         if username in self.users:
-            connections = self.connections[username]
-            await asyncio.gather(*[self.send_data(conn, username, data) for conn in connections])
+            await self.p2p_networks[username].broadcast(username, data)
 
     async def send_data(self, receiver, sender, data):
         # Simulate network delay
@@ -78,7 +95,7 @@ class SocialNetwork:
                 self.p2p_network.add_node(node_id_2, ip_2, node_id_2)
 
     async def create_and_distribute_backup(self, username):
-        if username in self.users and self.p2p_network:
+        if username in self.users and self.p2p_networks:
             user_blockchain = self.users[username]
             trusted_nodes = user_blockchain.trusted_nodes
 
@@ -93,10 +110,10 @@ class SocialNetwork:
             )
 
     async def restore_from_backup(self, username):
-        if username in self.users and self.p2p_network:
+        if username in self.users and self.p2p_networks:
             user_blockchain = self.users[username]
             success = await user_blockchain.restore_from_backup(
-                self.p2p_network,
+                self.p2p_networks,
                 self.backup_threshold
             )
             return success
