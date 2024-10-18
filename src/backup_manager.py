@@ -50,7 +50,7 @@ class BackupManager:
             Block(
                 block['index'],
                 block['timestamp'],
-                block['data'],  # Now this should already be decoded
+                block['data'],
                 block['previous_hash']
             )
             for block in data['chain']
