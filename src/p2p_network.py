@@ -70,7 +70,7 @@ class P2PNetwork:
 
     async def request_backup(self, node_id):
         if node_id in self.backups:
-            logging.info(f"Backup requested from node: {node_id}")
+            logging.info(f"Backup found for node: {node_id}")
             return self.backups[node_id]
         logging.warning(f"No backup found for node: {node_id}")
         return None
@@ -78,5 +78,7 @@ class P2PNetwork:
     async def handle_backup_request(self, request):
         node_id = request.query.get('node_id')
         if node_id in self.backups:
+            logging.info(f"Serving backup for node: {node_id}")
             return web.json_response(self.backups[node_id])
+        logging.warning(f"Backup not found for node: {node_id}")
         return web.Response(status=404, text="Backup not found")

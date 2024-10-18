@@ -31,30 +31,35 @@ async def main():
                 for node in alice_blockchain.trusted_nodes:
                     logging.info(f"Alice's trusted node: {node.node_id}, {node.node_type}, {node.ip_address}")
 
-        # Post data for Alice
-        data = "Hello, this is my first post!"
-        network.post_data("Alice", data)
-        logging.info(f"Posted data for Alice: {data}")
+        # Post data for all users
+        for user in users:
+            data = f"Hello, this is {user}'s first post!"
+            network.post_data(user, data)
+            logging.info(f"Posted data for {user}: {data}")
 
-        # Propagate data
-        await network.propagate_data("Alice", data)
+        # Propagate data for all users
+        for user in users:
+            await network.propagate_data(user, f"{user}'s data")
 
         # Wait a bit to allow for data propagation
         await asyncio.sleep(2)
 
-        # Create and distribute backup
-        alice_trusted_nodes = network.get_trusted_nodes_count("Alice")
-        if alice_trusted_nodes >= network.total_shares:
-            logging.info(f"Creating and distributing backup for Alice (trusted nodes: {alice_trusted_nodes}, required: {network.total_shares})...")
-            await network.create_and_distribute_backup("Alice")
-        else:
-            logging.warning(f"Not enough trusted nodes for Alice to create a backup. Have {alice_trusted_nodes}, need {network.total_shares}")
+        # Create and distribute backup for all users
+        for user in users:
+            user_trusted_nodes = network.get_trusted_nodes_count(user)
+            if user_trusted_nodes >= network.total_shares:
+                logging.info(f"Creating and distributing backup for {user} (trusted nodes: {user_trusted_nodes}, required: {network.total_shares})...")
+                await network.create_and_distribute_backup(user)
+            else:
+                logging.warning(f"Not enough trusted nodes for {user} to create a backup. Have {user_trusted_nodes}, need {network.total_shares}")
 
+        # Simulate data loss for Alice
         logging.info("Simulating data loss for Alice...")
         original_chain_length = len(network.users["Alice"].chain)
         network.users["Alice"].chain = []  # Clear Alice's blockchain
         logging.info(f"Alice's chain cleared. Original length: {original_chain_length}, Current length: {len(network.users['Alice'].chain)}")
 
+        # Restore Alice's data
         logging.info("Restoring Alice's data from backup...")
         success = await network.restore_from_backup("Alice")
         if success:

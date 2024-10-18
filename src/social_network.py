@@ -4,6 +4,7 @@ from src.blockchain import PersonalBlockchain
 from src.p2p_network import P2PNetwork
 import logging
 
+
 class SocialNetwork:
     def __init__(self, host='localhost', start_port=8000):
         self.users: Dict[str, PersonalBlockchain] = {}
@@ -12,7 +13,7 @@ class SocialNetwork:
         self.host = host
         self.start_port = start_port
         self.backup_threshold = 3  # This is 'k'
-        self.total_shares = 5  # This is 'n'
+        self.total_shares = 4  # This is 'n', reduced to match the number of trusted nodes
 
     async def start(self):
         start_tasks = [p2p_network.start(self.start_port + i)
