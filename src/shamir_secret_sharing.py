@@ -28,7 +28,7 @@ class ShamirSecretSharing:
                 "chain": [{
                     "index": block.index,
                     "timestamp": block.timestamp,
-                    "data": base64.b64encode(json.dumps(block.data).encode('utf-8')).decode('utf-8'),
+                    "data": block.data,
                     "previous_hash": block.previous_hash,
                     "hash": block.hash
                 } for block in personal_blockchain.chain]

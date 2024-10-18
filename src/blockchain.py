@@ -77,12 +77,11 @@ class PersonalBlockchain:
             self.trusted_nodes.append(new_node)
             logging.info(f"Added trusted node: {node_id}, {node_type}, {ip_address}")
 
-    async def create_and_distribute_backup(self, p2p_network, n, k):
-        return await self.backup_manager.distribute_backup(p2p_network, self.trusted_nodes, n, k)
+    def create_backup(self, n, k):
+        return self.backup_manager.create_backup(n, k)
 
-    async def restore_from_backup(self, p2p_network, k):
-        logging.info(f"PersonalBlockchain: Starting restoration process for {self.owner}")
-        return await self.backup_manager.request_backup_restoration(p2p_network, self.trusted_nodes, k)
+    def restore_from_backup(self, shares):
+        return self.backup_manager.restore_from_backup(shares)
 
     def remove_trusted_node(self, node_id):
         self.trusted_nodes = [node for node in self.trusted_nodes if node.node_id != node_id]

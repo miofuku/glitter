@@ -13,7 +13,7 @@ class SocialNetwork:
         self.host = host
         self.start_port = start_port
         self.backup_threshold = 3  # This is 'k'
-        self.total_shares = 4  # This is 'n', reduced to match the number of trusted nodes
+        self.total_shares = 4  # This is 'n'
 
     async def start(self):
         start_tasks = [p2p_network.start(self.start_port + i)
@@ -73,28 +73,41 @@ class SocialNetwork:
             trusted_nodes = user_blockchain.trusted_nodes
 
             if len(trusted_nodes) < self.total_shares:
-                logging.warning(f"Not enough trusted nodes for {username}. Have {len(trusted_nodes)}, need {self.total_shares}")
-                return
+                logging.warning(
+                    f"Not enough trusted nodes for {username}. Have {len(trusted_nodes)}, need {self.total_shares}")
+                return False
 
-            await user_blockchain.create_and_distribute_backup(
-                self.p2p_networks[username],
-                self.total_shares,
-                self.backup_threshold
-            )
+            shares = user_blockchain.create_backup(self.total_shares, self.backup_threshold)
+
+            for i, node in enumerate(trusted_nodes[:self.total_shares]):
+                await self.p2p_networks[username].send_backup(node.node_id, shares[i])
+
             logging.info(f"Created and distributed backup for {username}")
+            return True
 
     async def restore_from_backup(self, username):
         if username in self.users:
             user_blockchain = self.users[username]
-            success = await user_blockchain.restore_from_backup(
-                self.p2p_networks[username],
-                self.backup_threshold
-            )
-            if success:
-                logging.info(f"Successfully restored backup for {username}")
+            trusted_nodes = user_blockchain.trusted_nodes
+
+            shares = []
+            for node in trusted_nodes:
+                share = await self.p2p_networks[username].request_backup(node.node_id)
+                if share:
+                    shares.append(share)
+                    if len(shares) >= self.backup_threshold:
+                        break
+
+            if len(shares) >= self.backup_threshold:
+                success = user_blockchain.restore_from_backup(shares)
+                if success:
+                    logging.info(f"Successfully restored backup for {username}")
+                else:
+                    logging.error(f"Failed to restore backup for {username}")
+                return success
             else:
-                logging.error(f"Failed to restore backup for {username}")
-            return success
+                logging.error(f"Insufficient shares collected for {username}")
+                return False
         return False
 
     def get_trusted_nodes_count(self, username):

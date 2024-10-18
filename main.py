@@ -12,6 +12,7 @@ async def main():
         users = ["Alice", "Bob", "Charlie", "David", "Eve"]
         for user in users:
             network.add_user(user)
+            logging.info(f"Added user: {user}")
 
         # Start all P2P network nodes
         await network.start()
@@ -21,37 +22,26 @@ async def main():
         for i in range(len(users)):
             for j in range(i + 1, len(users)):
                 network.connect_users(users[i], users[j])
+                logging.info(f"Connected users: {users[i]} and {users[j]}")
 
-        # Log trusted nodes for each user
-        for user in users:
-            trusted_nodes_count = network.get_trusted_nodes_count(user)
-            logging.info(f"{user} has {trusted_nodes_count} trusted nodes")
-            if user == "Alice":
-                alice_blockchain = network.users["Alice"]
-                for node in alice_blockchain.trusted_nodes:
-                    logging.info(f"Alice's trusted node: {node.node_id}, {node.node_type}, {node.ip_address}")
+        # Log trusted nodes for Alice
+        alice_trusted_nodes = network.get_trusted_nodes_count("Alice")
+        logging.info(f"Alice has {alice_trusted_nodes} trusted nodes")
+        for node in network.users["Alice"].trusted_nodes:
+            logging.info(f"Alice's trusted node: {node.node_id}, {node.node_type}, {node.ip_address}")
 
-        # Post data for all users
-        for user in users:
-            data = f"Hello, this is {user}'s first post!"
-            network.post_data(user, data)
-            logging.info(f"Posted data for {user}: {data}")
+        # Post data for Alice
+        data = "Hello, this is Alice's first post!"
+        network.post_data("Alice", data)
+        logging.info(f"Posted data for Alice: {data}")
 
-        # Propagate data for all users
-        for user in users:
-            await network.propagate_data(user, f"{user}'s data")
-
-        # Wait a bit to allow for data propagation
-        await asyncio.sleep(2)
-
-        # Create and distribute backup for all users
-        for user in users:
-            user_trusted_nodes = network.get_trusted_nodes_count(user)
-            if user_trusted_nodes >= network.total_shares:
-                logging.info(f"Creating and distributing backup for {user} (trusted nodes: {user_trusted_nodes}, required: {network.total_shares})...")
-                await network.create_and_distribute_backup(user)
-            else:
-                logging.warning(f"Not enough trusted nodes for {user} to create a backup. Have {user_trusted_nodes}, need {network.total_shares}")
+        # Create and distribute backup for Alice
+        logging.info("Creating and distributing backup for Alice...")
+        backup_success = await network.create_and_distribute_backup("Alice")
+        if backup_success:
+            logging.info("Backup created and distributed successfully")
+        else:
+            logging.error("Failed to create and distribute backup")
 
         # Simulate data loss for Alice
         logging.info("Simulating data loss for Alice...")
@@ -61,8 +51,8 @@ async def main():
 
         # Restore Alice's data
         logging.info("Restoring Alice's data from backup...")
-        success = await network.restore_from_backup("Alice")
-        if success:
+        restore_success = await network.restore_from_backup("Alice")
+        if restore_success:
             logging.info("Alice's data restored successfully!")
             restored_chain_length = len(network.users["Alice"].chain)
             logging.info(f"Alice's chain length: {restored_chain_length}")
