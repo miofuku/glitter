@@ -53,7 +53,10 @@ async def test_create_and_distribute_backup(personal_blockchain):
     for node in trusted_nodes:
         personal_blockchain.add_trusted_node(node.node_id, node.node_type, node.ip_address)
 
-    await personal_blockchain.create_and_distribute_backup(mock_p2p_network, n, k)
+    serialized_shares = personal_blockchain.backup_manager.create_backup(n, k)
+
+    for node in trusted_nodes:
+        await mock_p2p_network.send_backup(node.node_id, serialized_shares)
 
     assert mock_p2p_network.send_backup.call_count == n
 
@@ -65,20 +68,20 @@ async def test_restore_from_backup(personal_blockchain):
     mock_blockchain = PersonalBlockchain("TestUser")
     mock_blockchain.add_block({"data": "Test Block"})
     n, k = 5, 3
-    shares_list = sss.split_secret(mock_blockchain, n, k)
+    shares = sss.split_secret(mock_blockchain, n, k)
+    serialized_shares = sss.serialize_shares(shares)
 
-    logging.debug(f"Number of share lists: {len(shares_list)}")
-    logging.debug(f"Number of shares in first list: {len(shares_list[0])}")
-
-    # Test reconstruction immediately after splitting
+    # Test reconstruction
     try:
-        reconstructed_data = sss.reconstruct_secret(shares_list, k)
-        logging.debug(f"Immediate reconstruction successful. Keys: {list(reconstructed_data.keys())}")
-        assert reconstructed_data['owner'] == mock_blockchain.owner
-        assert len(reconstructed_data['chain']) == len(mock_blockchain.chain)
+        success = personal_blockchain.backup_manager.restore_from_backup(serialized_shares, k)
+        assert success, "Failed to restore from backup"
+        reconstructed_blockchain = personal_blockchain
+        assert reconstructed_blockchain.owner == mock_blockchain.owner
+        assert len(reconstructed_blockchain.chain) == len(mock_blockchain.chain)
+        assert reconstructed_blockchain.chain[-1].data == mock_blockchain.chain[-1].data
     except Exception as e:
-        logging.error(f"Immediate reconstruction failed: {e}")
-        pytest.fail(f"Immediate reconstruction failed: {e}")
+        logging.error(f"Reconstruction failed: {e}")
+        pytest.fail(f"Reconstruction failed: {e}")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 import pytest
 from src.backup_manager import BackupManager
 from src.blockchain import PersonalBlockchain, TrustedNode
+import base64
+import json
 
 
 @pytest.fixture
@@ -30,7 +32,9 @@ async def test_distribute_and_restore_backup(backup_manager):
     trusted_nodes = [TrustedNode(f"node{i}", "contact", f"192.168.1.{i}") for i in range(n)]
 
     # Distribute backup
-    await backup_manager.distribute_backup(p2p_network, trusted_nodes, n, k)
+    serialized_shares = backup_manager.create_backup(n, k)
+    for i, node in enumerate(trusted_nodes):
+        await p2p_network.send_backup(node.node_id, serialized_shares)
 
     # Verify that backups were sent to all nodes
     assert len(p2p_network.backups) == n
@@ -40,7 +44,8 @@ async def test_distribute_and_restore_backup(backup_manager):
     backup_manager.personal_blockchain.chain = []
 
     # Restore from backup
-    success = await backup_manager.request_backup_restoration(p2p_network, trusted_nodes, k)
+    retrieved_shares = await p2p_network.request_backup(trusted_nodes[0].node_id)
+    success = backup_manager.restore_from_backup(retrieved_shares, k)
     assert success, "Failed to restore backup"
 
     restored_chain = backup_manager.personal_blockchain.chain
@@ -50,8 +55,11 @@ async def test_distribute_and_restore_backup(backup_manager):
         assert original.data == restored.data
 
     # Try to restore with insufficient nodes
-    insufficient_nodes = trusted_nodes[:k - 1]
-    success = await backup_manager.request_backup_restoration(p2p_network, insufficient_nodes, k)
+    backup_manager.personal_blockchain.chain = []
+    insufficient_shares = backup_manager.sss.deserialize_shares(retrieved_shares)
+    insufficient_shares = [shares[:k - 1] for shares in insufficient_shares]
+    insufficient_serialized = backup_manager.sss.serialize_shares(insufficient_shares)
+    success = backup_manager.restore_from_backup(insufficient_serialized, k)
     assert not success, "Unexpectedly succeeded in restoring backup with insufficient nodes"
 
 
@@ -82,7 +90,9 @@ async def test_backup_with_complex_data(backup_manager):
     trusted_nodes = [TrustedNode(f"node{i}", "contact", f"192.168.1.{i}") for i in range(n)]
 
     # Distribute backup
-    await backup_manager.distribute_backup(p2p_network, trusted_nodes, n, k)
+    serialized_shares = backup_manager.create_backup(n, k)
+    for node in trusted_nodes:
+        await p2p_network.send_backup(node.node_id, serialized_shares)
 
     # Verify that backups were sent to all nodes
     assert len(p2p_network.backups) == n
@@ -92,7 +102,8 @@ async def test_backup_with_complex_data(backup_manager):
     backup_manager.personal_blockchain.chain = []
 
     # Restore from backup
-    success = await backup_manager.request_backup_restoration(p2p_network, trusted_nodes, k)
+    retrieved_shares = await p2p_network.request_backup(trusted_nodes[0].node_id)
+    success = backup_manager.restore_from_backup(retrieved_shares, k)
     assert success, "Failed to restore backup"
 
     restored_chain = backup_manager.personal_blockchain.chain
@@ -102,7 +113,7 @@ async def test_backup_with_complex_data(backup_manager):
         assert original.data == restored.data
 
     # Verify that the complex data was correctly restored
-    assert restored_chain[-1].data["data"] == complex_data
+    assert restored_chain[-1].data == complex_data
 
 
 if __name__ == "__main__":

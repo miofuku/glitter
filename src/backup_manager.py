@@ -23,6 +23,9 @@ class BackupManager:
         try:
             logging.debug(f"Restoring from serialized shares of length: {len(serialized_shares)}")
             shares = self.sss.deserialize_shares(serialized_shares)
+            if len(shares[0]) < k:
+                logging.error(f"Insufficient shares for restoration: {len(shares[0])} < {k}")
+                return False
             reconstructed_data = self.sss.reconstruct_secret(shares, k)
             self.personal_blockchain.owner = reconstructed_data['owner']
             self.personal_blockchain.chain = [
