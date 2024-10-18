@@ -32,16 +32,16 @@ class ShamirSecretSharing:
                     "previous_hash": block.previous_hash,
                     "hash": block.hash
                 } for block in personal_blockchain.chain]
-            }).encode('utf-8')
+            })
+            # Encode the entire serialized data as base64
+            encoded_data = base64.b64encode(serialized_data.encode('utf-8'))
+            logging.debug(f"Original encoded data length: {len(encoded_data)}")
         except (TypeError, ValueError) as e:
             logging.error(f"Failed to serialize blockchain: {e}")
             raise
 
-        logging.debug(f"Serialized data length: {len(serialized_data)} bytes")
-        logging.debug(f"Serialized data (first 100 chars): {serialized_data[:100]}...")
-
-        # Split the serialized data into chunks
-        chunks = [serialized_data[i:i + self.chunk_size] for i in range(0, len(serialized_data), self.chunk_size)]
+        # Split the encoded data into chunks
+        chunks = [encoded_data[i:i + self.chunk_size] for i in range(0, len(encoded_data), self.chunk_size)]
         logging.debug(f"Number of chunks: {len(chunks)}")
 
         # Apply Shamir's Secret Sharing to each chunk
@@ -57,8 +57,6 @@ class ShamirSecretSharing:
             shares_list.append(shares)
 
         logging.debug(f"Number of share lists: {len(shares_list)}")
-        logging.debug(f"Number of shares in first list: {len(shares_list[0])}")
-
         return shares_list
 
     def reconstruct_secret(self, shares_list: List[List[Tuple[int, int]]], k: int) -> dict:
@@ -89,20 +87,29 @@ class ShamirSecretSharing:
             chunk = secret.to_bytes(byte_length, 'big')
             reconstructed_chunks.append(chunk)
 
-        # Combine chunks and decode
+        # Combine chunks
         reconstructed_data = b''.join(reconstructed_chunks)
-        logging.debug(f"Reconstructed data length: {len(reconstructed_data)} bytes")
-        logging.debug(f"Reconstructed data (first 100 chars): {reconstructed_data[:100]}...")
+        logging.debug(f"Reconstructed data length: {len(reconstructed_data)}")
 
         try:
-            json_data = json.loads(reconstructed_data.decode('utf-8'))
-            # Decode the base64 encoded data in each block
-            for block in json_data['chain']:
-                block['data'] = json.loads(base64.b64decode(block['data']).decode('utf-8'))
+            # Remove any padding bytes
+            reconstructed_data = reconstructed_data.rstrip(b'\x00')
+            logging.debug(f"Reconstructed data after removing padding: {len(reconstructed_data)}")
+
+            # Ensure the data is valid base64
+            padding = b'=' * ((4 - len(reconstructed_data) % 4) % 4)
+            reconstructed_data += padding
+            logging.debug(f"Reconstructed data after adding padding: {len(reconstructed_data)}")
+
+            # Decode the base64 encoded data
+            decoded_data = base64.b64decode(reconstructed_data)
+            logging.debug(f"Decoded data length: {len(decoded_data)}")
+
+            json_data = json.loads(decoded_data.decode('utf-8'))
             logging.debug(f"Parsed JSON data keys: {list(json_data.keys())}")
             return json_data
-        except json.JSONDecodeError as e:
-            logging.error(f"JSON decode error: {e}")
+        except Exception as e:
+            logging.error(f"Error decoding or parsing data: {e}")
             logging.error(f"Problematic data (first 100 chars): {reconstructed_data[:100]}...")
             raise
 

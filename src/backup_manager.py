@@ -9,11 +9,20 @@ class BackupManager:
         self.sss = ShamirSecretSharing(PRIME)
 
     def create_backup(self, n, k):
-        return self.sss.split_secret(self.personal_blockchain, n, k)
+        try:
+            shares = self.sss.split_secret(self.personal_blockchain, n, k)
+            logging.info(f"Created backup with {len(shares)} share lists")
+            logging.debug(f"First share list length: {len(shares[0])}")
+            return shares
+        except Exception as e:
+            logging.error(f"Failed to create backup: {e}")
+            raise
 
     def restore_from_backup(self, shares):
         try:
-            reconstructed_data = self.sss.reconstruct_secret(shares, len(shares))
+            logging.debug(f"Restoring from {len(shares)} share lists")
+            logging.debug(f"First share list length: {len(shares[0])}")
+            reconstructed_data = self.sss.reconstruct_secret(shares, len(shares[0]))
             self.personal_blockchain.owner = reconstructed_data['owner']
             self.personal_blockchain.chain = [
                 Block(
@@ -31,7 +40,5 @@ class BackupManager:
             return True
         except Exception as e:
             logging.error(f"Failed to restore from backup: {e}")
+            logging.error(f"Shares: {shares}")
             return False
-
-
-

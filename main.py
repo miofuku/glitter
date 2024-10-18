@@ -2,7 +2,8 @@ import asyncio
 import logging
 from src.social_network import SocialNetwork
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 async def main():
     network = SocialNetwork()
