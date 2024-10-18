@@ -87,30 +87,26 @@ class ShamirSecretSharing:
             chunk = secret.to_bytes(byte_length, 'big')
             reconstructed_chunks.append(chunk)
 
-        # Combine chunks
-        reconstructed_data = b''.join(reconstructed_chunks)
-        logging.debug(f"Reconstructed data length: {len(reconstructed_data)}")
+        # Combine chunks and remove any padding
+        reconstructed_data = b''.join(reconstructed_chunks).rstrip(b'\x00')
+        logging.debug(f"Reconstructed data length: {len(reconstructed_data)} bytes")
+
+        # Ensure the data length is divisible by 3 for proper base64 encoding
+        padding_length = (3 - len(reconstructed_data) % 3) % 3
+        padded_data = reconstructed_data + b'\x00' * padding_length
+        logging.debug(f"Padded data length: {len(padded_data)} bytes")
 
         try:
-            # Remove any padding bytes
-            reconstructed_data = reconstructed_data.rstrip(b'\x00')
-            logging.debug(f"Reconstructed data after removing padding: {len(reconstructed_data)}")
-
-            # Ensure the data is valid base64
-            padding = b'=' * ((4 - len(reconstructed_data) % 4) % 4)
-            reconstructed_data += padding
-            logging.debug(f"Reconstructed data after adding padding: {len(reconstructed_data)}")
-
-            # Decode the base64 encoded data
-            decoded_data = base64.b64decode(reconstructed_data)
-            logging.debug(f"Decoded data length: {len(decoded_data)}")
-
-            json_data = json.loads(decoded_data.decode('utf-8'))
+            base64_encoded = base64.b64encode(padded_data).decode('utf-8')
+            json_data = json.loads(base64.b64decode(base64_encoded).decode('utf-8').rstrip('\x00'))
             logging.debug(f"Parsed JSON data keys: {list(json_data.keys())}")
             return json_data
+        except json.JSONDecodeError as e:
+            logging.error(f"Error parsing reconstructed data: {e}")
+            logging.error(f"Problematic data (first 200 chars): {padded_data[:200]}...")
+            raise
         except Exception as e:
-            logging.error(f"Error decoding or parsing data: {e}")
-            logging.error(f"Problematic data (first 100 chars): {reconstructed_data[:100]}...")
+            logging.error(f"Unexpected error during reconstruction: {e}")
             raise
 
     def _mod_inverse(self, x: int) -> int:
