@@ -11,18 +11,19 @@ class BackupManager:
     def create_backup(self, n, k):
         try:
             shares = self.sss.split_secret(self.personal_blockchain, n, k)
-            logging.info(f"Created backup with {len(shares)} share lists")
-            logging.debug(f"First share list length: {len(shares[0])}")
-            return shares
+            serialized_shares = self.sss.serialize_shares(shares)
+            logging.info(f"Created backup with {n} shares")
+            logging.debug(f"Serialized shares length: {len(serialized_shares)}")
+            return serialized_shares
         except Exception as e:
-            logging.error(f"Failed to create backup: {e}")
+            logging.error(f"Failed to create backup: {str(e)}")
             raise
 
-    def restore_from_backup(self, shares):
+    def restore_from_backup(self, serialized_shares, k):
         try:
-            logging.debug(f"Restoring from {len(shares)} share lists")
-            logging.debug(f"First share list length: {len(shares[0])}")
-            reconstructed_data = self.sss.reconstruct_secret(shares, len(shares[0]))
+            logging.debug(f"Restoring from serialized shares of length: {len(serialized_shares)}")
+            shares = self.sss.deserialize_shares(serialized_shares)
+            reconstructed_data = self.sss.reconstruct_secret(shares, k)
             self.personal_blockchain.owner = reconstructed_data['owner']
             self.personal_blockchain.chain = [
                 Block(
@@ -39,6 +40,6 @@ class BackupManager:
             logging.info(f"Chain length: {len(self.personal_blockchain.chain)}")
             return True
         except Exception as e:
-            logging.error(f"Failed to restore from backup: {e}")
-            logging.error(f"Shares: {shares}")
+            logging.error(f"Failed to restore from backup: {str(e)}")
+            logging.error(f"Serialized shares (first 100 chars): {serialized_shares[:100]}...")
             return False

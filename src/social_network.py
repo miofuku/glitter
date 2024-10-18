@@ -77,39 +77,49 @@ class SocialNetwork:
                     f"Not enough trusted nodes for {username}. Have {len(trusted_nodes)}, need {self.total_shares}")
                 return False
 
-            shares = user_blockchain.create_backup(self.total_shares, self.backup_threshold)
+            try:
+                serialized_shares = user_blockchain.backup_manager.create_backup(self.total_shares,
+                                                                                 self.backup_threshold)
+                logging.debug(f"Created serialized shares of length: {len(serialized_shares)}")
 
-            for i, node in enumerate(trusted_nodes[:self.total_shares]):
-                await self.p2p_networks[username].send_backup(node.node_id, shares[i])
+                for i, node in enumerate(trusted_nodes[:self.total_shares]):
+                    await self.p2p_networks[username].send_backup(node.node_id, serialized_shares)
+                    logging.debug(f"Sent backup to trusted node {i + 1}/{self.total_shares}")
 
-            logging.info(f"Created and distributed backup for {username}")
-            return True
+                logging.info(f"Created and distributed backup for {username}")
+                return True
+            except Exception as e:
+                logging.error(f"Error in create_and_distribute_backup: {str(e)}")
+                return False
 
     async def restore_from_backup(self, username):
         if username in self.users:
             user_blockchain = self.users[username]
             trusted_nodes = user_blockchain.trusted_nodes
 
-            shares = []
-            for node in trusted_nodes:
-                share = await self.p2p_networks[username].request_backup(node.node_id)
-                if share:
-                    shares.append(share)
-                    if len(shares) >= self.backup_threshold:
+            serialized_shares = None
+            for i, node in enumerate(trusted_nodes):
+                try:
+                    share = await self.p2p_networks[username].request_backup(node.node_id)
+                    if share:
+                        serialized_shares = share
+                        logging.debug(f"Retrieved backup from trusted node {i + 1}")
                         break
+                except Exception as e:
+                    logging.error(f"Error retrieving backup from node {i + 1}: {str(e)}")
 
-            if len(shares) >= self.backup_threshold:
-                success = user_blockchain.restore_from_backup(shares)
+            if serialized_shares:
+                logging.debug(f"Retrieved serialized shares of length: {len(serialized_shares)}")
+                success = user_blockchain.backup_manager.restore_from_backup(serialized_shares, self.backup_threshold)
                 if success:
                     logging.info(f"Successfully restored backup for {username}")
                 else:
                     logging.error(f"Failed to restore backup for {username}")
                 return success
             else:
-                logging.error(f"Insufficient shares collected for {username}")
+                logging.error(f"No backup shares found for {username}")
                 return False
         return False
-
     def get_trusted_nodes_count(self, username):
         if username in self.users:
             return len(self.users[username].trusted_nodes)

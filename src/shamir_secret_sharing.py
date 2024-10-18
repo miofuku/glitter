@@ -1,9 +1,9 @@
 import random
 from typing import List, Tuple
-import base64
 import json
 import math
 import logging
+import base64
 
 
 class ShamirSecretSharing:
@@ -32,16 +32,14 @@ class ShamirSecretSharing:
                     "previous_hash": block.previous_hash,
                     "hash": block.hash
                 } for block in personal_blockchain.chain]
-            })
-            # Encode the entire serialized data as base64
-            encoded_data = base64.b64encode(serialized_data.encode('utf-8'))
-            logging.debug(f"Original encoded data length: {len(encoded_data)}")
+            }).encode('utf-8')
+            logging.debug(f"Serialized data length: {len(serialized_data)} bytes")
         except (TypeError, ValueError) as e:
             logging.error(f"Failed to serialize blockchain: {e}")
             raise
 
-        # Split the encoded data into chunks
-        chunks = [encoded_data[i:i + self.chunk_size] for i in range(0, len(encoded_data), self.chunk_size)]
+        # Split the serialized data into chunks
+        chunks = [serialized_data[i:i + self.chunk_size] for i in range(0, len(serialized_data), self.chunk_size)]
         logging.debug(f"Number of chunks: {len(chunks)}")
 
         # Apply Shamir's Secret Sharing to each chunk
@@ -52,7 +50,8 @@ class ShamirSecretSharing:
             shares = []
             for i in range(1, n + 1):
                 x = i
-                y = sum((coeff * pow(x, power, self.prime)) for power, coeff in enumerate(coefficients)) % self.prime
+                y = sum(
+                    (coeff * pow(x, power, self.prime)) for power, coeff in enumerate(coefficients)) % self.prime
                 shares.append((x, y))
             shares_list.append(shares)
 
@@ -111,6 +110,16 @@ class ShamirSecretSharing:
 
     def _mod_inverse(self, x: int) -> int:
         return pow(x, self.prime - 2, self.prime)
+
+    def serialize_shares(self, shares_list: List[List[Tuple[int, int]]]) -> str:
+        # Convert tuples to lists for JSON serialization
+        serializable_shares = [[[int(x), int(y)] for x, y in shares] for shares in shares_list]
+        return base64.b64encode(json.dumps(serializable_shares).encode('utf-8')).decode('utf-8')
+
+    def deserialize_shares(self, serialized_shares: str) -> List[List[Tuple[int, int]]]:
+        json_shares = json.loads(base64.b64decode(serialized_shares).decode('utf-8'))
+        # Convert lists back to tuples
+        return [[(int(x), int(y)) for x, y in shares] for shares in json_shares]
 
 
 # Use a smaller prime for each chunk, but still large enough for security
