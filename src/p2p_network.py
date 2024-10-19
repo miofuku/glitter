@@ -53,7 +53,7 @@ class P2PNetwork:
                         logging.info(f"Data sent to {receiver_username} successfully")
                     else:
                         logging.error(f"Failed to send data to {receiver_username}. Status: {response.status}")
-        except aiohttp.ClientError as e:
+        except Exception as e:
             logging.error(f"Network error when sending data to {receiver_username}: {str(e)}")
 
     async def broadcast(self, sender_username, data):

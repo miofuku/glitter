@@ -4,7 +4,6 @@ from src.blockchain import PersonalBlockchain
 from src.p2p_network import P2PNetwork
 import logging
 
-
 class SocialNetwork:
     def __init__(self, host='localhost', start_port=8000):
         self.users: Dict[str, PersonalBlockchain] = {}
@@ -97,6 +96,10 @@ class SocialNetwork:
             user_blockchain = self.users[username]
             trusted_nodes = user_blockchain.trusted_nodes
 
+            if len(trusted_nodes) < self.backup_threshold:
+                logging.warning(f"Insufficient trusted nodes for {username}. Have {len(trusted_nodes)}, need {self.backup_threshold}")
+                return False
+
             serialized_shares = None
             for i, node in enumerate(trusted_nodes):
                 try:
@@ -120,6 +123,7 @@ class SocialNetwork:
                 logging.error(f"No backup shares found for {username}")
                 return False
         return False
+
     def get_trusted_nodes_count(self, username):
         if username in self.users:
             return len(self.users[username].trusted_nodes)

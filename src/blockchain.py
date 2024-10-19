@@ -71,15 +71,11 @@ class PersonalBlockchain:
 
     def add_trusted_node(self, node_id, node_type, ip_address):
         new_node = TrustedNode(node_id, node_type, ip_address)
-        if new_node not in self.trusted_nodes:
+        if not any(node.node_id == new_node.node_id for node in self.trusted_nodes):
             self.trusted_nodes.append(new_node)
             logging.info(f"Added trusted node: {node_id}, {node_type}, {ip_address}")
-
-    def create_backup(self, n, k):
-        return self.backup_manager.create_backup(n, k)
-
-    def restore_from_backup(self, shares):
-        return self.backup_manager.restore_from_backup(shares)
+        else:
+            logging.info(f"Trusted node {node_id} already exists")
 
     def remove_trusted_node(self, node_id):
         self.trusted_nodes = [node for node in self.trusted_nodes if node.node_id != node_id]
@@ -89,3 +85,6 @@ class PersonalBlockchain:
             if node.node_id == node_id:
                 node.ip_address = new_ip
                 break
+
+    def get_trusted_node(self, node_id):
+        return next((node for node in self.trusted_nodes if node.node_id == node_id), None)
