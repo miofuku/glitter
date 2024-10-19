@@ -31,6 +31,12 @@ class PersonalBlockchain:
         signed_data = self.sign_data(json.dumps(genesis_data))
         return Block(0, time.time(), genesis_data, "0")
 
+    def add_block(self, data):
+        previous_block = self.chain[-1]
+        signed_data = self.sign_data(json.dumps(data))
+        new_block = Block(len(self.chain), time.time(), data, previous_block.hash)
+        self.chain.append(new_block)
+
     def sign_data(self, data):
         if isinstance(data, dict):
             data = json.dumps(data, sort_keys=True)
@@ -45,12 +51,6 @@ class PersonalBlockchain:
             hashes.SHA256()
         )
         return base64.b64encode(signature).decode('utf-8')
-
-    def add_block(self, data):
-        previous_block = self.chain[-1]
-        signed_data = self.sign_data(json.dumps(data))
-        new_block = Block(len(self.chain), time.time(), data, previous_block.hash)
-        self.chain.append(new_block)
 
     def verify_signature(self, data, signature):
         if isinstance(data, dict):

@@ -115,6 +115,5 @@ async def test_backup_with_complex_data(backup_manager):
     # Verify that the complex data was correctly restored
     assert restored_chain[-1].data == complex_data
 
-
 if __name__ == "__main__":
     pytest.main([__file__])
