@@ -3,16 +3,13 @@ import random
 from src.shamir_secret_sharing import ShamirSecretSharing, PRIME
 from src.blockchain import PersonalBlockchain
 
-
 @pytest.fixture
 def sss():
     return ShamirSecretSharing(PRIME)
 
-
 @pytest.fixture
 def personal_blockchain():
     return PersonalBlockchain("TestUser")
-
 
 def test_split_and_reconstruct(sss, personal_blockchain):
     n, k = 5, 3
@@ -30,7 +27,6 @@ def test_split_and_reconstruct(sss, personal_blockchain):
     assert len(reconstructed_data['chain']) == 1  # Only genesis block
     assert reconstructed_data['chain'][0]['data'] == personal_blockchain.chain[0].data
 
-
 def test_different_share_combinations(sss, personal_blockchain):
     n, k = 6, 4
 
@@ -44,7 +40,6 @@ def test_different_share_combinations(sss, personal_blockchain):
         assert len(reconstructed_data['chain']) == 1
         assert reconstructed_data['chain'][0]['data'] == personal_blockchain.chain[0].data
 
-
 def test_not_enough_shares(sss, personal_blockchain):
     n, k = 5, 3
 
@@ -53,24 +48,20 @@ def test_not_enough_shares(sss, personal_blockchain):
     with pytest.raises(ValueError):
         sss.reconstruct_secret([shares[:k - 1] for shares in shares_list], k)
 
-
 def test_invalid_k_value(sss, personal_blockchain):
     n, k = 3, 5
     with pytest.raises(ValueError, match="k must be less than or equal to n"):
         sss.split_secret(personal_blockchain, n, k)
-
 
 def test_invalid_n_value(sss, personal_blockchain):
     n, k = 1, 2
     with pytest.raises(ValueError, match="n must be at least 2"):
         sss.split_secret(personal_blockchain, n, k)
 
-
 def test_invalid_k_value_low(sss, personal_blockchain):
     n, k = 3, 1
     with pytest.raises(ValueError, match="k must be at least 2"):
         sss.split_secret(personal_blockchain, n, k)
-
 
 def test_multiple_reconstructions(sss, personal_blockchain):
     n, k = 8, 5
@@ -83,7 +74,6 @@ def test_multiple_reconstructions(sss, personal_blockchain):
         assert reconstructed_data['owner'] == personal_blockchain.owner
         assert len(reconstructed_data['chain']) == 1
         assert reconstructed_data['chain'][0]['data'] == personal_blockchain.chain[0].data
-
 
 def test_different_k_n_values(sss, personal_blockchain):
     test_cases = [(5, 3), (7, 4), (10, 6)]
@@ -102,7 +92,6 @@ def test_different_k_n_values(sss, personal_blockchain):
         # Try reconstruction with k-1 shares (should fail)
         with pytest.raises(ValueError):
             sss.reconstruct_secret([shares[:k - 1] for shares in shares_list], k)
-
 
 if __name__ == "__main__":
     pytest.main([__file__])
