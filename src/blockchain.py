@@ -29,12 +29,12 @@ class PersonalBlockchain:
             "user_message": "Genesis block"
         }
         signed_data = self.sign_data(json.dumps(genesis_data))
-        return Block(0, time.time(), genesis_data, "0")
+        return Block(0, time.time(), {"data": genesis_data, "signature": signed_data}, "0")
 
     def add_block(self, data):
         previous_block = self.chain[-1]
         signed_data = self.sign_data(json.dumps(data))
-        new_block = Block(len(self.chain), time.time(), data, previous_block.hash)
+        new_block = Block(len(self.chain), time.time(), {"data": data, "signature": signed_data}, previous_block.hash)
         self.chain.append(new_block)
 
     def sign_data(self, data):

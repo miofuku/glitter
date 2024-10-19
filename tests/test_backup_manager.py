@@ -4,16 +4,13 @@ from src.blockchain import PersonalBlockchain, TrustedNode
 import base64
 import json
 
-
 @pytest.fixture
 def personal_blockchain():
     return PersonalBlockchain("TestUser")
 
-
 @pytest.fixture
 def backup_manager(personal_blockchain):
     return BackupManager(personal_blockchain)
-
 
 @pytest.mark.asyncio
 async def test_distribute_and_restore_backup(backup_manager):
@@ -30,6 +27,9 @@ async def test_distribute_and_restore_backup(backup_manager):
     p2p_network = MockP2PNetwork()
     n, k = 5, 3
     trusted_nodes = [TrustedNode(f"node{i}", "contact", f"192.168.1.{i}") for i in range(n)]
+
+    # Add a block to the blockchain
+    backup_manager.personal_blockchain.add_block({"message": "Test Data"})
 
     # Distribute backup
     serialized_shares = backup_manager.create_backup(n, k)
@@ -52,16 +52,15 @@ async def test_distribute_and_restore_backup(backup_manager):
     assert len(restored_chain) == len(original_chain)
     for original, restored in zip(original_chain, restored_chain):
         assert original.index == restored.index
-        assert original.data == restored.data
+        assert original.data["data"] == restored.data["data"]
 
     # Try to restore with insufficient nodes
     backup_manager.personal_blockchain.chain = []
     insufficient_shares = backup_manager.sss.deserialize_shares(retrieved_shares)
-    insufficient_shares = [shares[:k - 1] for shares in insufficient_shares]
+    insufficient_shares = [shares[:k-1] for shares in insufficient_shares]
     insufficient_serialized = backup_manager.sss.serialize_shares(insufficient_shares)
     success = backup_manager.restore_from_backup(insufficient_serialized, k)
     assert not success, "Unexpectedly succeeded in restoring backup with insufficient nodes"
-
 
 @pytest.mark.asyncio
 async def test_backup_with_complex_data(backup_manager):
@@ -110,10 +109,10 @@ async def test_backup_with_complex_data(backup_manager):
     assert len(restored_chain) == len(original_chain)
     for original, restored in zip(original_chain, restored_chain):
         assert original.index == restored.index
-        assert original.data == restored.data
+        assert original.data["data"] == restored.data["data"]
 
     # Verify that the complex data was correctly restored
-    assert restored_chain[-1].data == complex_data
+    assert restored_chain[-1].data["data"] == complex_data
 
 if __name__ == "__main__":
     pytest.main([__file__])
