@@ -6,17 +6,21 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from src.block import Block
 from src.backup_manager import BackupManager
 from src.trusted_node import TrustedNode
+from src.did_manager import DIDManager
 import logging
 
 
 class PersonalBlockchain:
     def __init__(self, owner):
-        self.owner = owner
+        self.did_manager = DIDManager()
         self.private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048
         )
         self.public_key = self.private_key.public_key()
+        self.did = self.did_manager.create_did(self.public_key)
+        self.did_document = self.did_manager.create_did_document(self.did, self.public_key)
+        self.owner = owner
         self.chain = [self.create_genesis_block()]
         self.backup_manager = BackupManager(self)
         self.trusted_nodes = []
@@ -24,6 +28,8 @@ class PersonalBlockchain:
     def create_genesis_block(self):
         genesis_data = {
             "owner": self.owner,
+            "did": self.did,
+            "did_document": self.did_document,
             "creation_time": time.time(),
             "blockchain_version": "1.0",
             "user_message": "Genesis block"

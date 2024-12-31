@@ -35,16 +35,25 @@ class SocialNetwork:
 
     def connect_users(self, user1, user2):
         if user1 in self.users and user2 in self.users:
+            user1_blockchain = self.users[user1]
+            user2_blockchain = self.users[user2]
+            
             if user2 not in self.connections[user1]:
                 self.connections[user1].append(user2)
                 self.connections[user2].append(user1)
-                # Add users to each other's P2P networks
-                self.p2p_networks[user1].add_node(user2, self.p2p_networks[user2].nodes[user2][0], f"{user2}_id")
-                self.p2p_networks[user2].add_node(user1, self.p2p_networks[user1].nodes[user1][0], f"{user1}_id")
-                # Set up trusted connections
+                
+                # 使用 DID 作为节点标识
+                self.p2p_networks[user1].add_node(user2, 
+                    self.p2p_networks[user2].nodes[user2][0], 
+                    user2_blockchain.did)
+                self.p2p_networks[user2].add_node(user1, 
+                    self.p2p_networks[user1].nodes[user1][0], 
+                    user1_blockchain.did)
+                
+                # 使用 DID 建立信任连接
                 self.add_trusted_connection(user1, user2, "contact")
                 self.add_trusted_connection(user2, user1, "contact")
-                logging.info(f"Connected users {user1} and {user2}, and set up trusted connections")
+                logging.info(f"Connected users {user1} ({user1_blockchain.did}) and {user2} ({user2_blockchain.did})")
             else:
                 logging.info(f"Users {user1} and {user2} are already connected")
 
